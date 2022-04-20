@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.linhei.queryuserid.mapper.UserMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="User">
+        <id column="user_id" property="id"/>
+        <result column="user_name" property="name"/>
+        <result column="user_hex" property="hex"/>
+        <result column="user_alias" property="alias"/>
+        <!--        <result column="tableName" property="tableName"/>-->
+        <result column="user_update_time" property="updateTime"/>
+        <result column="tableName" property="tableName"/>
+    </resultMap>
+
+    <!--    <resultMap id="TableHexTop" type="User">-->
+    <!--               <result column="table_hex_top" property="hexTop"/>-->
+    <!--    </resultMap>-->
+
+    <!--    <resultMap id="Hex" type="User">-->
+    <!--        <result column="user_hex" property="user"/>-->
+    <!--    </resultMap>-->
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        user_key
+        AS "hex",user_id AS "id",
+        user_name AS "name",
+        user_alias As "alias",
+        update_time As "updateTime"
+    </sql>
+
+    <select id="queryUID" parameterType="String" resultType="User">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM ${tableName} WHERE `user_key`= #{hex}
+    </select>
+
+
+    <select id="queryUserList" parameterType="String" resultType="User">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM `user_${tableName}` LIMIT ${start},${length}
+    </select>
+
+    <update id="update" parameterType="User">
+        UPDATE `user_database`.`${tableName}`
+        SET `user_name`=#{name},
+            `user_alias`=#{alias},
+            `update_time`=#{updateTime}
+        WHERE `user_id` = #{id}
+          AND `user_key` = #{hex}
+    </update>
+
+    <select id="getTableCount" parameterType="String" resultType="Integer">
+        SELECT COUNT(*)
+        FROM `user_${tableName}`
+    </select>
+
+    <!--    &lt;!&ndash; 查询全部数据 &ndash;&gt;-->
+    <!--    <select id="queryUserByHex" resultType="User">-->
+    <!--        SELECT-->
+    <!--        &lt;!&ndash;        <include refid="Base_Column_List"/>&ndash;&gt;-->
+    <!--        *-->
+    <!--        FROM-->
+    <!--        user_1a-->
+    <!--        &lt;!&ndash;        property="hexTop"&ndash;&gt;-->
+    <!--        &lt;!&ndash;        Where `user_key` like&ndash;&gt;-->
+    <!--        &lt;!&ndash;        <include refid="Hex"/>&ndash;&gt;-->
+    <!--    </select>-->
+
+    <!--        &lt;!&ndash;    按照Hex查询&ndash;&gt;
+            <select id="queryUserByHex">
+                SELECT *
+                FROM user_1a
+                WHERE `user_key` like `1abad06d`;
+            </select>-->
+
+
+</mapper>
