@@ -6,6 +6,8 @@ import com.linhei.queryuserid.mapper.UserMapper;
 import com.linhei.queryuserid.service.QueryService;
 import com.linhei.queryuserid.utils.FileUtils;
 import com.linhei.queryuserid.utils.IpUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletRequest;
@@ -15,7 +17,6 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -25,8 +26,9 @@ import java.util.zip.CRC32;
 @Service
 public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements QueryService {
 
+    private final static Logger logger = LoggerFactory.getLogger(QueryServiceImpl.class);
 
-    public List<User> queryUID(User user, HttpServletRequest request) throws IOException {
+    public List<User> queryUID(User user, HttpServletRequest request) {
 
 //        User user = new User();
         if (user.getId() != null) {
@@ -95,7 +97,8 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
             tableName = "user_" + hex.charAt(0);
 //            System.out.println(user.getHexTop());
             e.printStackTrace();
-            log(e);
+            log("getUserTableName\t hex=" + hex, e);
+
             System.out.println("单字符");
         }
         return tableName;
@@ -162,19 +165,16 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
             bufIn = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
         } catch (IOException e) {
             e.printStackTrace();
-            log(e);
+            log("getBiliUsername\tURLConnection", e);
         }
         User user = new User(); // 需要查询的用户
         user.setId(id);
 
         User user1 = getHex(user);  // 获取hex值和当前时间
-        List<User> list = new ArrayList<>(); // 查询数据库中符合条件的结果
-        try {
-            list = queryUID(user, request); // 对数据库进行查询 获取用户信息
-        } catch (IOException e) {
-            e.printStackTrace();
-            log(e);
-        }
+        List<User> list; // 查询数据库中符合条件的结果
+
+        list = queryUID(user, request); // 对数据库进行查询 获取用户信息
+
 
 //        User user = new User(); // 数据库中的用户
 //        System.out.println(list.get(0));
@@ -199,21 +199,17 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
                         textStr.append(line);
                 } catch (IOException e) {
                     e.printStackTrace();
-                    log(e);
+                    log("getBiliUsername\t防止空指针异常", e);
                 }
-            try {
-                //将img标签正则封装对象再调用matcher方法获取一个Matcher对象
-                final Matcher textMatcher = Pattern.compile("\"mid\":\"(\\d+)\",\"name\":\"([\\W\\w]*)\",\"approve\"").matcher(textStr.toString());
-                while (textMatcher.find())          //查找匹配文本
-                {
+
+            //将img标签正则封装对象再调用matcher方法获取一个Matcher对象
+            final Matcher textMatcher = Pattern.compile("\"mid\":\"(\\d+)\",\"name\":\"([\\W\\w]*)\",\"approve\"").matcher(textStr.toString());
+            while (textMatcher.find()) {          //查找匹配文本
 //                    System.out.println(textMatcher.group());
-                    user1.setId(Long.valueOf(textMatcher.group(1)));     //打印一遍
-                    user1.setName(textMatcher.group(2));     //打印一遍
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                log(e);
+                user1.setId(Long.valueOf(textMatcher.group(1)));     //打印一遍
+                user1.setName(textMatcher.group(2));     //打印一遍
             }
+
         }
 
 //        System.out.println(user2.toString());
@@ -266,7 +262,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
      *
      * @param e Exception
      */
-    public static void log(Exception e) {
-        FileUtils.fileLinesWrite("opt//javaapps//log//log.txt", e.toString(), true);
+    public static void log(String methodName, Exception e) {
+        FileUtils.fileLinesWrite("opt//javaapps//log//log.txt", methodName + "\t" + e.toString(), true);
     }
 }
