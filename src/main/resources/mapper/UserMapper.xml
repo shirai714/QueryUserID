@@ -57,6 +57,12 @@
         FROM `user_${tableName}`
     </select>
 
+    <insert id="insertUser" parameterType="User">
+        INSERT INTO `user_database`.`${tableName}`
+            (`user_id`, `user_key`, `user_name`, `user_alias`, `update_time`)
+        VALUES (#{id}, #{hex}, #{name}, #{alias}, #{updateTime})
+    </insert>
+
     <!--    &lt;!&ndash; 查询全部数据 &ndash;&gt;-->
     <!--    <select id="queryUserByHex" resultType="User">-->
     <!--        SELECT-->

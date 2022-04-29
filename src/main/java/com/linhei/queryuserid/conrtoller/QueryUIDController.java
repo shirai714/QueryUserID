@@ -63,5 +63,13 @@ public class QueryUIDController {
     }
 
 
+    @RequestMapping(value = "/insert/insert", method = RequestMethod.POST)
+    @ResponseBody
+    public String insert(User user) {
+        return queryService.insertUser(user) ? "导入成功" : "导入失败";
+
+    }
+
+
 }
 

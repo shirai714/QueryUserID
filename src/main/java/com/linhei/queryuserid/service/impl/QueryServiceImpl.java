@@ -232,9 +232,38 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
         return user1;
     }
 
+
+    /**
+     * 获取表内的数据量
+     *
+     * @param tableName 表名
+     * @return 表的数据量
+     */
     @Override
     public Integer getTableCount(String tableName) {
         return this.baseMapper.getTableCount(tableName);
+    }
+
+
+    /**
+     * 将数据插入表中
+     *
+     * @param user 实体类
+     * @return 插入结果
+     */
+    @Override
+    public boolean insertUser(User user) {
+
+        if (user.getHex() != null && user.getId() != null) { // 判断传入实体类的ID和Hex是否为空
+            if (user.getTableName() == null) { // 若表名未传入则调用方法获取表名
+                user.setTableName(getUserTableName(user.getHex()));
+            }
+            user.setUpdateTime(new Date()); //将当前系统时间加入用户实体类中
+            return this.baseMapper.insertUser(user);
+        }
+
+
+        return false;
     }
 
     /**
