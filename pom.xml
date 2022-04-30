@@ -32,23 +32,23 @@
             <version>3.4.1</version>
         </dependency>
 
-<!--        &lt;!&ndash; thymeleaf视图引擎 &ndash;&gt;
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-thymeleaf</artifactId>
-            <version>2.3.3.RELEASE</version>
-        </dependency>-->
+        <!--        &lt;!&ndash; thymeleaf视图引擎 &ndash;&gt;
+                <dependency>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-thymeleaf</artifactId>
+                    <version>2.3.3.RELEASE</version>
+                </dependency>-->
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
-       <!--     &lt;!&ndash;            忽略springboot自带日志框架Logback&ndash;&gt;
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-logging</artifactId>
-                </exclusion>
-            </exclusions>-->
+            <!--     &lt;!&ndash;            忽略springboot自带日志框架Logback&ndash;&gt;
+                 <exclusions>
+                     <exclusion>
+                         <groupId>org.springframework.boot</groupId>
+                         <artifactId>spring-boot-starter-logging</artifactId>
+                     </exclusion>
+                 </exclusions>-->
         </dependency>
 
         <dependency>
@@ -70,10 +70,18 @@
             <artifactId>mariadb-java-client</artifactId>
             <version>3.0.0-alpha</version>
         </dependency>
+        <!--        Lombok未使用-->
+        <!--        <dependency>
+                    <groupId>org.projectlombok</groupId>
+                    <artifactId>lombok</artifactId>
+                    <version>1.18.22</version>
+                </dependency>-->
+
+        <!--     commons-lang3   -->
         <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>1.18.22</version>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.12.0</version>
         </dependency>
 
         <!--        &lt;!&ndash;        添加log4j&ndash;&gt;

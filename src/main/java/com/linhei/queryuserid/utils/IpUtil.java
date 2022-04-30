@@ -1,22 +1,27 @@
 package com.linhei.queryuserid.utils;
 
-import lombok.extern.slf4j.Slf4j;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.http.HttpServletRequest;
 import java.net.*;
 import java.util.Enumeration;
 
 /**
- *@Author: make mpy
- *@Description: 获取IP的方法
- *@Date: 2021/1/18 15:02
+ * @Author: make mpy
+ * @Description: 获取IP的方法
+ * @Date: 2021/1/18 15:02
  */
-@Slf4j
+//@Slf4j
 public class IpUtil {
+
+    private static final Logger log = LoggerFactory.getLogger(IpUtil.class);
     private static final String LOCAL_IP = "127.0.0.1";
+
     /**
      * 获取IP地址
-     *
+     * <p>
      * 使用Nginx等反向代理软件， 则不能通过request.getRemoteAddr()获取IP地址
      * 如果使用了多级反向代理的话，X-Forwarded-For的值并不止一个，而是一串IP地址，X-Forwarded-For中第一个非unknown的有效IP字符串，则为真实IP地址
      */
@@ -89,7 +94,8 @@ public class IpUtil {
 
     /**
      * 将IPv4地址转换成字节
-     *IPv4地址
+     * IPv4地址
+     *
      * @param text
      * @return byte 字节
      */
@@ -150,7 +156,7 @@ public class IpUtil {
                     return null;
             }
         } catch (NumberFormatException e) {
-            log.error("数字格式化异常",e);
+            log.error("数字格式化异常", e);
             return null;
         }
         return bytes;
@@ -164,7 +170,7 @@ public class IpUtil {
                 addr = InetAddress.getLocalHost();
                 ip = addr.getHostAddress();
             } catch (UnknownHostException e) {
-                log.error("获取失败",e);
+                log.error("获取失败", e);
             }
             return ip;
         } else {
@@ -188,7 +194,7 @@ public class IpUtil {
                     }
                 }
             } catch (SocketException e) {
-                log.error("获取失败",e);
+                log.error("获取失败", e);
             }
         }
         return "";

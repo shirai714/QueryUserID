@@ -41,9 +41,10 @@ public interface QueryService extends IService<User> {
      *
      * @param user    实体类
      * @param request 请求
+     * @param key     密钥
      * @return 更新结果
      */
-    boolean update(User user, HttpServletRequest request);
+    boolean update(User user, HttpServletRequest request, String key);
 
     /**
      * 获取用户名方法
@@ -67,8 +68,9 @@ public interface QueryService extends IService<User> {
      * insertUser方法
      *
      * @param user 实体类
+     * @param key  认证秘钥
      * @return 结果
      */
-    boolean insertUser(User user);
+    boolean insertUser(User user, String key);
 
 }

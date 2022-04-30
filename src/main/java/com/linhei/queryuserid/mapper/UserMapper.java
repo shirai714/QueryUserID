@@ -52,5 +52,4 @@ public interface UserMapper extends BaseMapper<User> {
      */
     boolean insertUser(User user);
 
-//    Integer selectCount(String tableName);
 }

@@ -1,1 +1,0 @@
-getUserTableName	 hex=0	java.lang.StringIndexOutOfBoundsException: begin 0, end 2, length 1
