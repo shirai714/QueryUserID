@@ -9,6 +9,7 @@ import com.linhei.queryuserid.utils.IpUtil;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -113,17 +114,17 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
     /**
      * update()
      *
-     * @param user     用户对象
-     * @param request  请求
-     * @param inputKey 密钥
+     * @param user    用户对象
+     * @param request 请求
      * @return 修改结果
      */
     @Override
-    public boolean update(User user, HttpServletRequest request, String inputKey) {
-        if (inputKey == null || !inputKey.equals(key)) { // 判断输入的key是否为空 且是否与key是否相同
+    public boolean update(User user, HttpServletRequest request) {
+        if (user.getId() == null) { // 当用户id为空时不允许修改
             return false;
+        } else if (user.getTableName() == null || user.getHex() == null || user.getTableName().equals("") || user.getHex().equals("")) {
+            user = getHex(user); // 只有当表名和hex为空时才调用获取hex的方法
         }
-        user = getHex(user);
 //        System.out.println(user.toString());
 
         user.setIp(IpUtil.getIpAddr(request)); // 配置ip
@@ -234,10 +235,10 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
 //        System.out.println(user1);
         if (user.getName() == null) { // 判断用户是否拥有用户名
             user1.setAlias(user.getAlias());
-            update(user1, request, key);
+            update(user1, request);
         } else if (!user.getName().equals(user1.getName())) {  // 判断用户是否更改用户名
             user1.setAlias(user.getName());
-            update(user1, request, key); // 并将更改上传到数据库
+            update(user1, request); // 并将更改上传到数据库
         } else if (user.getAlias() != null) {
             user1.setAlias(user.getAlias());
         }
@@ -261,34 +262,15 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
         return this.baseMapper.getTableCount(tableName);
     }
 
-    //创建私有全局变量key
-    private String key = "";
-
-    @PostConstruct // 项目启动后执行注解
-    @Scheduled(cron = "0 0 */8 * * ?") // 设置定时任务注解 每过8小时执行一次
-//    @Scheduled(fixedDelay = 5000) // 设置定时任务注解 每五秒执行一次
-//    @Scheduled(initialDelay = 1, fixedRate = 5) //第一次延迟1秒后执行，之后按fixedRate的规则每5秒执行一次
-    public void getKey() {
-        key = RandomStringUtils.randomAlphanumeric(8); // 获取本次key 对key重写
-        System.out.println(key);
-        // 将key写入key.txt文件中 用于校验 flag为false表示覆盖写入
-        FileUtils.fileLinesWrite("opt//javaapps//key//key.txt",
-                key, false);
-    }
 
     /**
      * 将数据插入表中
      *
-     * @param user     实体类
-     * @param inputKey 输入的秘钥
+     * @param user 实体类
      * @return 插入结果
      */
     @Override
-    public boolean insertUser(User user, String inputKey) {
-        if (inputKey == null || !inputKey.equals(key)) { // 判断输入的key是否为空 且是否与key是否相同
-            return false;
-        }
-
+    public boolean insertUser(User user) {
         if (user.getHex() != null && user.getId() != null) { // 判断传入实体类的ID和Hex是否为空
             if (user.getTableName() == null) { // 若表名未传入则调用方法获取表名
                 user.setTableName(getUserTableName(user.getHex()));
@@ -301,20 +283,32 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
         return false;
     }
 
+
+    /**
+     * @param tableName 表名
+     * @return 创建结果
+     */
+    @Override
+    public Integer createTable(String tableName) {
+
+        return this.baseMapper.createTable(tableName);
+    }
+
+
     /**
      * @param methodName 方法名
-     * @param ip         IP地址
+     * @param ip         访问者IP地址
      * @param content    查询的信息
      */
     public static void recordLog(String methodName, String ip, String content) {
         String information = methodName + "\tIP=" + ip + "\t查询信息=" + content + "\tTime=" + new Date();
 
         if (ip.equals("127.0.0.1")) {
-            FileUtils.fileLinesWrite("opt//javaapps//log//LocalHostIP//" + methodName + ".txt",
+            FileUtils.fileLinesWrite("opt//javaApps//log//LocalHostIP//" + methodName + ".txt",
                     information,
                     true);
         } else {
-            FileUtils.fileLinesWrite("opt//javaapps//log//ClientIP//" + methodName + ".txt",
+            FileUtils.fileLinesWrite("opt//javaApps//log//ClientIP//" + methodName + ".txt",
                     information,
                     true);
         }
@@ -327,6 +321,6 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
      * @param e Exception
      */
     public static void log(String methodName, Exception e) {
-        FileUtils.fileLinesWrite("opt//javaapps//log//log.txt", methodName + "\t" + e.toString(), true);
+        FileUtils.fileLinesWrite("opt//javaApps//log//log.txt", methodName + "\t" + e.toString(), true);
     }
 }

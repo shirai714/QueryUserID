@@ -2,12 +2,18 @@ package com.linhei.queryuserid.conrtoller;
 
 import com.linhei.queryuserid.entity.User;
 import com.linhei.queryuserid.service.QueryService;
+import com.linhei.queryuserid.service.impl.QueryServiceImpl;
+import com.linhei.queryuserid.utils.FileUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -20,6 +26,7 @@ public class QueryUIDController {
 
     @Autowired
     QueryService queryService;
+
 
     /**
      * 根据hex查询用户
@@ -49,19 +56,6 @@ public class QueryUIDController {
         return queryService.queryUserList(tableName, start, length, request);
     }
 
-    /**
-     * update()更新数据
-     *
-     * @param user    用户对象
-     * @param request 请求
-     * @param key     密钥
-     * @return 修改结果
-     */
-    @RequestMapping(value = "/update", method = RequestMethod.PUT)
-    @ResponseBody
-    public String update(User user, HttpServletRequest request, String key) {
-        return queryService.update(user, request, key) ? "修改信息成功" : "修改信息失败";
-    }
 
     /**
      * 查询用户
@@ -79,16 +73,75 @@ public class QueryUIDController {
 
 
     /**
+     * update()更新数据
+     *
+     * @param user    用户对象
+     * @param request 请求
+     * @param key     密钥
+     * @return 修改结果
+     */
+    @RequestMapping(value = "/update", method = RequestMethod.PUT)
+    @ResponseBody
+    public String update(User user, HttpServletRequest request, String key) {
+        if (key == null) { // 判断数据密钥是否为空
+            return "密钥为空";
+        } else if (!key.equals(Key)) {// 判断是否与key是否相同
+            return "密钥错误，请确认后重试";
+        }
+        return queryService.update(user, request) ? "修改信息成功" : "修改信息失败";
+    }
+
+    /**
      * 数据导入
      *
      * @param user 用户实体
      * @param key  输入的密钥
      * @return 导入结果
      */
-    @RequestMapping(value = "/insert/insert", method = RequestMethod.POST)
+    @RequestMapping(value = "/insert", method = RequestMethod.POST)
     @ResponseBody
     public String insert(User user, String key) {
-        return queryService.insertUser(user, key) ? "导入成功" : "导入失败";
+        if (key == null) { // 判断数据密钥是否为空
+            return "密钥为空";
+        } else if (!key.equals(Key)) {// 判断是否与key是否相同
+            return "密钥错误，请确认后重试";
+        }
+        return queryService.insertUser(user) ? "导入成功" : "导入失败";
+    }
+
+
+    /**
+     * 创建表方法
+     *
+     * @param tableName 表名
+     * @param key       输入的密钥
+     * @return 创建结果
+     */
+    @RequestMapping(value = "/createTable", method = RequestMethod.GET)
+    @ResponseBody
+    public String createTable(String tableName, String key) {
+        if (key == null) { // 判断数据密钥是否为空
+            return "密钥为空";
+        } else if (!key.equals(Key)) {// 判断是否与key是否相同
+            return "密钥错误，请确认后重试";
+        }
+        return queryService.createTable("user_" + tableName) == 0 ? "创建成功" : "";
+    }
+
+
+    //创建私有全局变量key
+    private String Key = "";
+
+    @PostConstruct // 项目启动后执行注解
+    @Scheduled(cron = "0 0 */8 * * ?") // 设置定时任务注解 每过8小时执行一次
+//    @Scheduled(fixedDelay = 5000) // 设置定时任务注解 每五秒执行一次
+//    @Scheduled(initialDelay = 1, fixedRate = 5) //第一次延迟1秒后执行，之后按fixedRate的规则每5秒执行一次
+    private void getKey() {
+        Key = RandomStringUtils.randomAlphanumeric(8); // 获取本次key 对key重写
+        System.out.println(Key);
+        // 将key写入key.txt文件中 用于校验 flag为false表示覆盖写入
+        FileUtils.fileLinesWrite("opt//javaApps//key//key.txt",
+                Key, false);
     }
 
 

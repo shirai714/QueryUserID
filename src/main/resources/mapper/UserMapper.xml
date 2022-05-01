@@ -30,6 +30,7 @@
         update_time As "updateTime"
     </sql>
 
+    <!--    根据HEX查询数据SQL语句  -->
     <select id="queryUID" parameterType="String" resultType="User">
         SELECT
         <include refid="Base_Column_List"/>
@@ -37,12 +38,14 @@
     </select>
 
 
+    <!--    查询全表SQL语句   -->
     <select id="queryUserList" parameterType="String" resultType="User">
         SELECT
         <include refid="Base_Column_List"/>
         FROM `user_${tableName}` LIMIT ${start},${length}
     </select>
 
+    <!--    更新数据SQL语句   -->
     <update id="update" parameterType="User">
         UPDATE `user_database`.`${tableName}`
         SET `user_name`=#{name},
@@ -52,16 +55,36 @@
           AND `user_key` = #{hex}
     </update>
 
+    <!--    获取表数据条目SQL语句    -->
     <select id="getTableCount" parameterType="String" resultType="Integer">
         SELECT COUNT(*)
         FROM `user_${tableName}`
     </select>
 
+    <!--    插入数据SQL语句   -->
     <insert id="insertUser" parameterType="User">
         INSERT INTO `user_database`.`${tableName}`
             (`user_id`, `user_key`, `user_name`, `user_alias`, `update_time`)
         VALUES (#{id}, #{hex}, #{name}, #{alias}, #{updateTime})
     </insert>
+
+    <!--    创建表SQL语句    -->
+    <update id="createTable" parameterType="String">
+        CREATE TABLE `user_database`.`${tableName}`
+        (
+            `user_id`     int(11)                                                 NOT NULL COMMENT '用户的ID',
+            `user_key`    varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '用户id的标识符',
+            `user_name`   varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '用户昵称',
+            `user_alias`  varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '用户曾用名',
+            `update_time` date                                                    NULL DEFAULT NULL COMMENT '最后更新时间',
+            PRIMARY KEY (`user_id`, `user_key`) USING BTREE
+        ) ENGINE = InnoDB
+          CHARACTER SET = utf8
+          COLLATE = utf8_general_ci
+          ROW_FORMAT = Compact;
+
+    </update>
+
 
     <!--    &lt;!&ndash; 查询全部数据 &ndash;&gt;-->
     <!--    <select id="queryUserByHex" resultType="User">-->

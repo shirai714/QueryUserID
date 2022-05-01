@@ -37,16 +37,6 @@ public interface QueryService extends IService<User> {
     String getUserTableName(String hex);
 
     /**
-     * 更新用户方法
-     *
-     * @param user    实体类
-     * @param request 请求
-     * @param key     密钥
-     * @return 更新结果
-     */
-    boolean update(User user, HttpServletRequest request, String key);
-
-    /**
      * 获取用户名方法
      *
      * @param id      用户ID
@@ -65,12 +55,26 @@ public interface QueryService extends IService<User> {
     Integer getTableCount(String tableName);
 
     /**
+     * 更新用户方法
+     *
+     * @param user    实体类
+     * @param request 请求
+     * @return 更新结果
+     */
+    boolean update(User user, HttpServletRequest request);
+
+    /**
      * insertUser方法
      *
      * @param user 实体类
-     * @param key  认证秘钥
      * @return 结果
      */
-    boolean insertUser(User user, String key);
+    boolean insertUser(User user);
+
+    /**
+     * @param tableName 表名
+     * @return 创建结果
+     */
+    Integer createTable(String tableName);
 
 }

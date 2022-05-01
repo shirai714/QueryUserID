@@ -52,4 +52,13 @@ public interface UserMapper extends BaseMapper<User> {
      */
     boolean insertUser(User user);
 
+
+    /**
+     * 创建表方法
+     *
+     * @param tableName 表名
+     * @return 创建结果
+     */
+    int createTable(@Param("tableName") String tableName);
+
 }
