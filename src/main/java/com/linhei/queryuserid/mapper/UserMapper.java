@@ -7,6 +7,9 @@ import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
+/**
+ * @author linhei
+ */
 @Mapper
 public interface UserMapper extends BaseMapper<User> {
 

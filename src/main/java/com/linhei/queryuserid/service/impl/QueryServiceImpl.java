@@ -6,15 +6,11 @@ import com.linhei.queryuserid.mapper.UserMapper;
 import com.linhei.queryuserid.service.QueryService;
 import com.linhei.queryuserid.utils.FileUtils;
 import com.linhei.queryuserid.utils.IpUtil;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -23,12 +19,20 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.CRC32;
 
-@EnableScheduling // 启动定时任务注解
+/**
+ * @author linhei
+ */
+
+/*
+ 启动定时任务注解
+ */
+@EnableScheduling
 @Service
 public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements QueryService {
 
@@ -57,24 +61,49 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
 
         // 获取客户端IP地址
         String ip = IpUtil.getIpAddr(request);
-        recordLog("queryUID", ip, "user:" + user); // 先记录后查询 防止查询失败不记录
+        // 先记录后查询 防止查询失败不记录
+        recordLog("queryUID", ip, "user:" + user);
 
-        List<User> userList = this.baseMapper.queryUID(user); // 为list第一个值设置访问者ip
+
+        List<User> userList = this.baseMapper.queryUID(user);
+
+        // 若userList大小为0则返回null
+        if (userList.size() == 0) {
+            return null;
+        }
+
+        // 判断传入参数中是否有id
+        if (user.getId() != null) {
+            // 使用迭代器遍历
+            Iterator<User> iterator = userList.iterator();
+            while (iterator.hasNext()) {
+                // 若匹配则跳出本次循环
+                if (iterator.next().getId().equals(user.getId())) {
+                    continue;
+                }
+                // 不匹配则删除
+                iterator.remove();
+            }
+        }
+
+        // 为list第一个值设置访问者ip
         userList.get(0).setIp(ip);
-
         return userList;
     }
 
-    @Override
+
     public List<User> queryUserList(String tableName, String start, String length, HttpServletRequest request) {
-        if (null == start) { // 当未指定start时，将start默认指定为0
+        // 当未指定start时，将start默认指定为0
+        if (null == start) {
             start = "0";
         }
 
 
-        if (null == length) { // 当length未指定时，将length默认指定为5000
+        // 当length未指定时，将length默认指定为5000
+        if (null == length) {
             length = "5000";
-        } else if (length.equals("max")) { // 当length指定为max时，将查询表下所有数据
+        } else if ("max".equals(length)) {
+            // 当length指定为max时，将查询表下所有数据
             length = String.valueOf(getTableCount(tableName));
         }
 //        System.out.println(length);
@@ -82,16 +111,22 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
         // 获取客户端IP地址
         String ip = IpUtil.getIpAddr(request);
 
-        // 将查询信息记录
-        recordLog("queryUserList", ip, "tableName:" + tableName + " start:" + start + " length:" + length); // 先记录后查询 防止查询失败不记录
+        // 先记录后查询 防止查询失败不记录
+        recordLog("queryUserList", ip, "tableName:" + tableName + " start:" + start + " length:" + length);
 
-        List<User> userList = this.baseMapper.queryUserList(tableName, start, length); // 为list第一个值设置访问者ip
+
+        List<User> userList = this.baseMapper.queryUserList(tableName, start, length);
+
+        // 若userList大小为0则返回null
+        if (userList.size() == 0) {
+            return null;
+        }
+        // 为list第一个值设置访问者ip
         userList.get(0).setIp(ip);
 
         return userList;
     }
 
-    @Override
     public String getUserTableName(String hex) {
 
         String tableName;
@@ -118,19 +153,21 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
      * @param request 请求
      * @return 修改结果
      */
-    @Override
     public boolean update(User user, HttpServletRequest request) {
-        if (user.getId() == null) { // 当用户id为空时不允许修改
+        // 当用户id为空时不允许修改
+        if (user.getId() == null) {
             return false;
-        } else if (user.getTableName() == null || user.getHex() == null || user.getTableName().equals("") || user.getHex().equals("")) {
-            user = getHex(user); // 只有当表名和hex为空时才调用获取hex的方法
+        } else if (user.getTableName() == null || user.getHex() == null || "".equals(user.getTableName()) || "".equals(user.getHex())) {
+            // 只有当表名和hex为空时才调用获取hex的方法
+            user = getHex(user);
         }
-//        System.out.println(user.toString());
 
-        user.setIp(IpUtil.getIpAddr(request)); // 配置ip
+        // 配置ip
+        user.setIp(IpUtil.getIpAddr(request));
 
-        // 将查询信息记录
-        recordLog("update", user.getIp(), user.toString()); // 先记录后查询 防止查询失败不记录
+        // 先记录后查询 防止查询失败不记录
+        recordLog("update", user.getIp(), user.toString());
+
         return this.baseMapper.update(user);
     }
 
@@ -144,8 +181,10 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
         String hex = String.valueOf(user.getId());
         CRC32 crc32 = new CRC32();
         crc32.update(hex.getBytes(StandardCharsets.UTF_8));
-        String getHex = String.format("%16x", crc32.getValue());    // 10进制转16进制
-        user.setHex(getHex.trim()); // 去除空字符
+        // 10进制转16进制
+        String getHex = String.format("%16x", crc32.getValue());
+        // 去除空字符
+        user.setHex(getHex.trim());
         user.setTableName(getUserTableName(user.getHex()));
         user.setUpdateTime(new Date());
         return user;
@@ -161,7 +200,6 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
      * @param request 请求信息
      * @return user1
      */
-    @Override
     public User getBiliUsername(long id, HttpServletRequest request) {
 
         // 获取客户端IP地址
@@ -185,21 +223,32 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
             e.printStackTrace();
             log("getBiliUsername\tURLConnection", e);
         }
-        User user = new User(); // 需要查询的用户
+        // 需要查询的用户
+        User user = new User();
         user.setId(id);
 
-        User user1 = getHex(user);  // 获取hex值和当前时间
-        List<User> list; // 查询数据库中符合条件的结果
+        // 获取hex值和当前时间
+        User user1 = getHex(user);
+        // 查询数据库中符合条件的结果
+        List<User> list;
 
-        list = queryUID(user, request); // 对数据库进行查询 获取用户信息
+        // 对数据库进行查询 获取用户信息
+        list = queryUID(user, request);
+
+        // 若list大小为0则返回null
+        if (list.size() == 0) {
+            return null;
+        }
 
 
 //        User user = new User(); // 数据库中的用户
 //        System.out.println(list.get(0));
         for (User value : list) {
 //            System.out.println("user:" + value);
-            if (value.getId() == id) {  // 判断用户是否为指定用户的ID 防止信息更改错误
-                user = value;   // 将用户更新为查询的结果
+            // 判断用户是否为指定用户的ID 防止信息更改错误
+            if (value.getId() == id) {
+                // 将用户更新为查询的结果
+                user = value;
                 break;
             }
         }
@@ -208,24 +257,29 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
         String line = "";
         StringBuilder textStr = new StringBuilder();
         while (line != null) {
-            for (int i = 0; i < 10; i++)      //将10行内容追加到textStr字符串中
+            //将10行内容追加到textStr字符串中
+            for (int i = 0; i < 10; i++) {
                 try {
                     assert bufIn != null;
                     line = bufIn.readLine();
 
-                    if (line != null)
+                    if (line != null) {
                         textStr.append(line);
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                     log("getBiliUsername\t防止空指针异常", e);
                 }
-
+            }
+            String strPattern = "\"mid\":\"(\\d+)\",\"name\":\"([\\W\\w]*)\",\"approve\"";
             //将img标签正则封装对象再调用matcher方法获取一个Matcher对象
-            final Matcher textMatcher = Pattern.compile("\"mid\":\"(\\d+)\",\"name\":\"([\\W\\w]*)\",\"approve\"").matcher(textStr.toString());
-            while (textMatcher.find()) {          //查找匹配文本
+            final Matcher textMatcher = Pattern.compile(strPattern).matcher(textStr.toString());
+            //查找匹配文本
+            while (textMatcher.find()) {
 //                    System.out.println(textMatcher.group());
-                user1.setId(Long.valueOf(textMatcher.group(1)));     //打印一遍
-                user1.setName(textMatcher.group(2));     //打印一遍
+                // 将匹配结果添加到user1中
+                user1.setId(Long.valueOf(textMatcher.group(1)));
+                user1.setName(textMatcher.group(2));
             }
 
         }
@@ -233,18 +287,21 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
 //        System.out.println(user2.toString());
 //        System.out.println(user);
 //        System.out.println(user1);
-        if (user.getName() == null) { // 判断用户是否拥有用户名
+        // 判断用户是否拥有用户名
+        if (user.getName() == null) {
             user1.setAlias(user.getAlias());
             update(user1, request);
-        } else if (!user.getName().equals(user1.getName())) {  // 判断用户是否更改用户名
+        } else if (!user.getName().equals(user1.getName())) {
+            // 判断用户是否更改用户名
             user1.setAlias(user.getName());
-            update(user1, request); // 并将更改上传到数据库
+            // 并将更改上传到数据库
+            update(user1, request);
         } else if (user.getAlias() != null) {
             user1.setAlias(user.getAlias());
         }
 
-
-        user1.setIp(ip); // 将ip赋予user1
+        // 将ip赋予user1
+        user1.setIp(ip);
 
 
         return user1;
@@ -257,7 +314,6 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
      * @param tableName 表名
      * @return 表的数据量
      */
-    @Override
     public Integer getTableCount(String tableName) {
         return this.baseMapper.getTableCount(tableName);
     }
@@ -269,13 +325,15 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
      * @param user 实体类
      * @return 插入结果
      */
-    @Override
     public boolean insertUser(User user) {
-        if (user.getHex() != null && user.getId() != null) { // 判断传入实体类的ID和Hex是否为空
-            if (user.getTableName() == null) { // 若表名未传入则调用方法获取表名
+        // 判断传入实体类的ID和Hex是否为空
+        if (user.getHex() != null && user.getId() != null) {
+            // 若表名未传入则调用方法获取表名
+            if (user.getTableName() == null) {
                 user.setTableName(getUserTableName(user.getHex()));
             }
-            user.setUpdateTime(new Date()); //将当前系统时间加入用户实体类中
+            //将当前系统时间加入用户实体类中
+            user.setUpdateTime(new Date());
             return this.baseMapper.insertUser(user);
         }
 
@@ -288,7 +346,6 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
      * @param tableName 表名
      * @return 创建结果
      */
-    @Override
     public Integer createTable(String tableName) {
 
         return this.baseMapper.createTable(tableName);
@@ -303,7 +360,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
     public static void recordLog(String methodName, String ip, String content) {
         String information = methodName + "\tIP=" + ip + "\t查询信息=" + content + "\tTime=" + new Date();
 
-        if (ip.equals("127.0.0.1")) {
+        if ("127.0.0.1".equals(ip)) {
             FileUtils.fileLinesWrite("opt//javaApps//log//LocalHostIP//" + methodName + ".txt",
                     information,
                     true);
