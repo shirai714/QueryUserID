@@ -64,4 +64,13 @@ public interface UserMapper extends BaseMapper<User> {
      */
     int createTable(@Param("tableName") String tableName);
 
+
+    /**
+     * 删除用户
+     *
+     * @param user 实体类
+     * @return 结果
+     */
+    Boolean deleteUser(User user);
+
 }

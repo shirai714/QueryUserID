@@ -38,6 +38,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
 
     private final static Logger logger = LoggerFactory.getLogger(QueryServiceImpl.class);
 
+    @Override
     public List<User> queryUID(User user, HttpServletRequest request) {
 
 //        User user = new User();
@@ -92,6 +93,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
     }
 
 
+    @Override
     public List<User> queryUserList(String tableName, String start, String length, HttpServletRequest request) {
         // 当未指定start时，将start默认指定为0
         if (null == start) {
@@ -127,6 +129,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
         return userList;
     }
 
+    @Override
     public String getUserTableName(String hex) {
 
         String tableName;
@@ -153,6 +156,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
      * @param request 请求
      * @return 修改结果
      */
+    @Override
     public boolean update(User user, HttpServletRequest request) {
         // 当用户id为空时不允许修改
         if (user.getId() == null) {
@@ -200,13 +204,14 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
      * @param request 请求信息
      * @return user1
      */
+    @Override
     public User getBiliUsername(long id, HttpServletRequest request) {
 
         // 获取客户端IP地址
         String ip = IpUtil.getIpAddr(request);
 
-        // 将查询信息记录
-        recordLog("getBiliUsername", ip, String.valueOf(id));    // 先记录后查询 防止查询失败不记录
+        // 先记录后查询 防止查询失败不记录
+        recordLog("getBiliUsername", ip, String.valueOf(id));
 
         BufferedReader bufIn = null;
 
@@ -223,12 +228,10 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
             e.printStackTrace();
             log("getBiliUsername\tURLConnection", e);
         }
-        // 需要查询的用户
+        // 需要查询的用户 用于比对用户名是否更新
         User user = new User();
         user.setId(id);
 
-        // 获取hex值和当前时间
-        User user1 = getHex(user);
         // 查询数据库中符合条件的结果
         List<User> list;
 
@@ -240,11 +243,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
             return null;
         }
 
-
-//        User user = new User(); // 数据库中的用户
-//        System.out.println(list.get(0));
         for (User value : list) {
-//            System.out.println("user:" + value);
             // 判断用户是否为指定用户的ID 防止信息更改错误
             if (value.getId() == id) {
                 // 将用户更新为查询的结果
@@ -253,6 +252,8 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
             }
         }
 
+        // 获取hex值和当前时间
+        User user1 = getHex(new User(id));
 
         String line = "";
         StringBuilder textStr = new StringBuilder();
@@ -268,26 +269,32 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
-                    log("getBiliUsername\t防止空指针异常", e);
+                    log("getBiliUsername\t空指针异常", e);
                 }
             }
-            String strPattern = "\"mid\":\"(\\d+)\",\"name\":\"([\\W\\w]*)\",\"approve\"";
+            final String strPattern = "\"mid\":\"(\\d{1,10})\",\"name\":\"([\\W\\w]{1,16})\",\"approve\"";
             //将img标签正则封装对象再调用matcher方法获取一个Matcher对象
             final Matcher textMatcher = Pattern.compile(strPattern).matcher(textStr.toString());
             //查找匹配文本
-            while (textMatcher.find()) {
-//                    System.out.println(textMatcher.group());
+            if (textMatcher.find()) {
                 // 将匹配结果添加到user1中
                 user1.setId(Long.valueOf(textMatcher.group(1)));
                 user1.setName(textMatcher.group(2));
+            } else {
+                if ("{\"code\":-412,\"message\":\"请求被拦截\",\"ttl\":1,\"data\":null}".equals(textStr)) {
+                    return user1;
+                } else {
+                    // 若通过BiliBili API无法匹配信息则返回空 并从数据库中删除该用户
+                    System.out.println(user1);
+                    FileUtils.fileLinesWrite("opt//javaApps//log//deleteLog.txt",
+                            "UserID:\t" + user1.getId() + "\t删除结果：" + deleteUser(user1), true);
+                    return null;
+                }
             }
 
         }
 
-//        System.out.println(user2.toString());
-//        System.out.println(user);
-//        System.out.println(user1);
-        // 判断用户是否拥有用户名
+        // 用于判断用户是否拥有用户名
         if (user.getName() == null) {
             user1.setAlias(user.getAlias());
             update(user1, request);
@@ -297,12 +304,12 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
             // 并将更改上传到数据库
             update(user1, request);
         } else if (user.getAlias() != null) {
+            // 更新曾用名
             user1.setAlias(user.getAlias());
         }
 
-        // 将ip赋予user1
+        // 将查询者ip赋予user1
         user1.setIp(ip);
-
 
         return user1;
     }
@@ -314,6 +321,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
      * @param tableName 表名
      * @return 表的数据量
      */
+    @Override
     public Integer getTableCount(String tableName) {
         return this.baseMapper.getTableCount(tableName);
     }
@@ -325,6 +333,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
      * @param user 实体类
      * @return 插入结果
      */
+    @Override
     public boolean insertUser(User user) {
         // 判断传入实体类的ID和Hex是否为空
         if (user.getHex() != null && user.getId() != null) {
@@ -346,9 +355,15 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
      * @param tableName 表名
      * @return 创建结果
      */
+    @Override
     public Integer createTable(String tableName) {
 
         return this.baseMapper.createTable(tableName);
+    }
+
+    @Override
+    public Boolean deleteUser(User user) {
+        return this.baseMapper.deleteUser(user);
     }
 
 

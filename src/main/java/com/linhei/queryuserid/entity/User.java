@@ -107,12 +107,24 @@ public class User {
         this.updateTime = updateTime;
     }
 
-    //    无参构造
+    /**
+     * 无参构造
+     */
     public User() {
     }
 
-    //    有参构造
-
+    /**
+     * 全有参构造
+     *
+     * @param id         id
+     * @param hex        hex
+     * @param name       姓名
+     * @param alias      曾用名
+     * @param hexTop2    前两位hex
+     * @param updateTime 更新时间
+     * @param selectTime 查询时间
+     * @param ip         用户id
+     */
     public User(Long id, String hex, String name, String alias, String hexTop2, Date updateTime, Long selectTime, String ip) {
         this.id = id;
         this.hex = hex;
@@ -122,6 +134,15 @@ public class User {
         this.updateTime = updateTime;
         this.selectTime = selectTime;
         this.ip = ip;
+    }
+
+    /**
+     * 仅id构造方法
+     *
+     * @param id ID
+     */
+    public User(Long id) {
+        this.id = id;
     }
 
     @Override

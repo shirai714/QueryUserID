@@ -13,7 +13,18 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.List;
 
+/**
+ * @author linhei
+ */
 public interface QueryService extends IService<User> {
+    /**
+     * 查询用户
+     *
+     * @param user    实体类
+     * @param request 请求
+     * @return 结果
+     * @throws IOException IO异常
+     */
     List<User> queryUID(User user, HttpServletRequest request) throws IOException;
 
     /**
@@ -72,9 +83,18 @@ public interface QueryService extends IService<User> {
     boolean insertUser(User user);
 
     /**
+     * 创建表
+     *
      * @param tableName 表名
      * @return 创建结果
      */
     Integer createTable(String tableName);
 
+    /**
+     * 删除用户
+     *
+     * @param user 实体类
+     * @return 结果
+     */
+    Boolean deleteUser(User user);
 }

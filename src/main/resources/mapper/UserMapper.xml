@@ -64,26 +64,32 @@
     <!--    插入数据SQL语句   -->
     <insert id="insertUser" parameterType="User">
         INSERT INTO `user_database`.`${tableName}`
-            (`user_id`, `user_key`, `user_name`, `user_alias`, `update_time`)
-        VALUES (#{id}, #{hex}, #{name}, #{alias}, #{updateTime})
+            (`user_id`, `user_key`, `user_name`, `user_alias`)
+        VALUES (#{id}, #{hex}, #{name}, #{alias})
     </insert>
 
     <!--    创建表SQL语句    -->
     <update id="createTable" parameterType="String">
         CREATE TABLE `user_database`.`${tableName}`
         (
-            `user_id`     int(11)                                                 NOT NULL COMMENT '用户的ID',
-            `user_key`    varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '用户id的标识符',
-            `user_name`   varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '用户昵称',
-            `user_alias`  varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '用户曾用名',
-            `update_time` date                                                    NULL DEFAULT NULL COMMENT '最后更新时间',
+            `user_id`     int(11)                                                NOT NULL COMMENT '用户的ID',
+            `user_key`    varchar(30) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '用户id的标识符',
+            `user_name`   varchar(30) CHARACTER SET utf8 COLLATE utf8_general_ci NULL     DEFAULT NULL COMMENT '用户昵称',
+            `user_alias`  varchar(30) CHARACTER SET utf8 COLLATE utf8_general_ci NULL     DEFAULT NULL COMMENT '用户曾用名',
+            `update_time` timestamp                                              NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
             PRIMARY KEY (`user_id`, `user_key`) USING BTREE
         ) ENGINE = InnoDB
-          CHARACTER SET = utf8
-          COLLATE = utf8_general_ci
+          CHARACTER SET = utf8mb4
+          COLLATE = utf8mb4_general_ci
           ROW_FORMAT = Compact;
 
     </update>
+
+    <delete id="deleteUser" parameterType="User">
+        delete
+        from `user_database`.`${tableName}`
+        WHERE `user_id` = #{id}
+    </delete>
 
 
     <!--    &lt;!&ndash; 查询全部数据 &ndash;&gt;-->
