@@ -25,7 +25,7 @@ public interface QueryService extends IService<User> {
      * @return 结果
      * @throws IOException IO异常
      */
-    List<User> queryUID(User user, HttpServletRequest request) throws IOException;
+    List<User> queryUiD(User user, HttpServletRequest request) throws IOException;
 
     /**
      * 查询用户列表方法

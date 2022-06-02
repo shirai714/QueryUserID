@@ -37,7 +37,6 @@ public class User {
     private Date updateTime;
 
     private String tableName;
-    private Long selectTime;
     private String ip;
 
     //    Getter and Setter方法
@@ -49,14 +48,6 @@ public class User {
 
     public void setIp(String ip) {
         this.ip = ip;
-    }
-
-    public Long getSelectTime() {
-        return selectTime;
-    }
-
-    public void setSelectTime(Long selectTime) {
-        this.selectTime = selectTime;
     }
 
     public String getTableName() {
@@ -122,17 +113,15 @@ public class User {
      * @param alias      曾用名
      * @param hexTop2    前两位hex
      * @param updateTime 更新时间
-     * @param selectTime 查询时间
      * @param ip         用户id
      */
-    public User(Long id, String hex, String name, String alias, String hexTop2, Date updateTime, Long selectTime, String ip) {
+    public User(Long id, String hex, String name, String alias, String hexTop2, Date updateTime, String ip) {
         this.id = id;
         this.hex = hex;
         this.name = name;
         this.alias = alias;
         this.tableName = hexTop2;
         this.updateTime = updateTime;
-        this.selectTime = selectTime;
         this.ip = ip;
     }
 
@@ -147,15 +136,31 @@ public class User {
 
     @Override
     public String toString() {
-        return "User{" +
-                "id=" + id +
-                ", hex='" + hex + '\'' +
-                ", name='" + name + '\'' +
-                ", alias='" + alias + '\'' +
-                ", updateTime=" + updateTime +
-                ", tableName='" + tableName + '\'' +
-                ", selectTime=" + selectTime +
-                ", ip='" + ip + '\'' +
-                '}';
+        StringBuilder user = new StringBuilder();
+        user.append("User{");
+        if (id != null) {
+            user.append("id='").append(id);
+        }
+        if (hex != null) {
+            user.append("', hex='").append(hex);
+        }
+        if (name != null) {
+            user.append("', name='").append(name);
+        }
+        if (alias != null) {
+            user.append("', alias='").append(alias);
+        }
+        if (updateTime != null) {
+            user.append("', updateTime='").append(updateTime);
+        }
+        if (tableName != null) {
+            user.append("', tableName='").append(tableName);
+        }
+        if (ip != null) {
+            user.append("', ip='").append(ip);
+        }
+        user.append("'}");
+        return user.toString();
+
     }
 }

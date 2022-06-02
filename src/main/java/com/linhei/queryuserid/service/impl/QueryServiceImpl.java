@@ -39,7 +39,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
     private final static Logger logger = LoggerFactory.getLogger(QueryServiceImpl.class);
 
     @Override
-    public List<User> queryUID(User user, HttpServletRequest request) {
+    public List<User> queryUiD(User user, HttpServletRequest request) {
 
 //        User user = new User();
         if (user.getId() != null) {
@@ -68,8 +68,8 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
 
         List<User> userList = this.baseMapper.queryUID(user);
 
-        // 若userList大小为0则返回null
-        if (userList.size() == 0) {
+        // 若userList为null则返回null
+        if (userList == null || userList.size() == 0) {
             return null;
         }
 
@@ -85,6 +85,11 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
                 // 不匹配则删除
                 iterator.remove();
             }
+        }
+
+        // 若userList为null则返回null
+        if (userList.size() == 0) {
+            return null;
         }
 
         // 为list第一个值设置访问者ip
@@ -213,33 +218,17 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
         // 先记录后查询 防止查询失败不记录
         recordLog("getBiliUsername", ip, String.valueOf(id));
 
-        BufferedReader bufIn = null;
-
-        try {
-            URL url = new URL("https://api.bilibili.com/x/web-interface/card?mid=" + id);
-            URLConnection urlConn = url.openConnection();
-            //设置请求属性，有部分网站不加这句话会抛出IOException: Server returned HTTP response code: 403 for URL异常
-            //如：b站
-            urlConn.setRequestProperty("User-Agent",
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.60 Safari/537.36");
-
-            bufIn = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
-        } catch (IOException e) {
-            e.printStackTrace();
-            log("getBiliUsername\tURLConnection", e);
-        }
         // 需要查询的用户 用于比对用户名是否更新
-        User user = new User();
-        user.setId(id);
+        User user = new User(id);
 
         // 查询数据库中符合条件的结果
         List<User> list;
 
         // 对数据库进行查询 获取用户信息
-        list = queryUID(user, request);
+        list = queryUiD(user, request);
 
         // 若list大小为0则返回null
-        if (list.size() == 0) {
+        if (list == null || list.size() == 0) {
             return null;
         }
 
@@ -255,43 +244,13 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
         // 获取hex值和当前时间
         User user1 = getHex(new User(id));
 
-        String line = "";
-        StringBuilder textStr = new StringBuilder();
-        while (line != null) {
-            //将10行内容追加到textStr字符串中
-            for (int i = 0; i < 10; i++) {
-                try {
-                    assert bufIn != null;
-                    line = bufIn.readLine();
+        final String reg = "\"mid\":\"\\d{1,10}\",\"name\":\"([\\W\\w]{1,16})\",\"approve\"";
 
-                    if (line != null) {
-                        textStr.append(line);
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    log("getBiliUsername\t空指针异常", e);
-                }
-            }
-            final String strPattern = "\"mid\":\"(\\d{1,10})\",\"name\":\"([\\W\\w]{1,16})\",\"approve\"";
-            //将img标签正则封装对象再调用matcher方法获取一个Matcher对象
-            final Matcher textMatcher = Pattern.compile(strPattern).matcher(textStr.toString());
-            //查找匹配文本
-            if (textMatcher.find()) {
-                // 将匹配结果添加到user1中
-                user1.setId(Long.valueOf(textMatcher.group(1)));
-                user1.setName(textMatcher.group(2));
-            } else {
-                if ("{\"code\":-412,\"message\":\"请求被拦截\",\"ttl\":1,\"data\":null}".equals(textStr)) {
-                    return user1;
-                } else {
-                    // 若通过BiliBili API无法匹配信息则返回空 并从数据库中删除该用户
-                    System.out.println(user1);
-                    FileUtils.fileLinesWrite("opt//javaApps//log//deleteLog.txt",
-                            "UserID:\t" + user1.getId() + "\t删除结果：" + deleteUser(user1), true);
-                    return null;
-                }
-            }
+        // 调用爬取API的方法
+        user1 = getBiliApi(user1, id, reg, "https://api.bilibili.com/x/web-interface/card?mid=");
 
+        if (null == user1) {
+            return null;
         }
 
         // 用于判断用户是否拥有用户名
@@ -394,5 +353,73 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
      */
     public static void log(String methodName, Exception e) {
         FileUtils.fileLinesWrite("opt//javaApps//log//log.txt", methodName + "\t" + e.toString(), true);
+    }
+
+    /**
+     * 爬取BiliBli的API的方法
+     *
+     * @param user 需要查询的信息
+     * @param id   用户id
+     * @return 查询结果 若用户不存在则从数据库中删除该用户
+     */
+    public User getBiliApi(User user, Long id, String reg, String textUrl) {
+
+        BufferedReader bufIn = null;
+
+        try {
+            URL url = new URL(textUrl + id);
+            URLConnection urlConn = url.openConnection();
+            //设置请求属性，有部分网站不加这句话会抛出IOException: Server returned HTTP response code: 403 for URL异常
+            //如：b站
+            urlConn.setRequestProperty("User-Agent",
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.60 Safari/537.36");
+
+            bufIn = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
+        } catch (IOException e) {
+            e.printStackTrace();
+            log("getBiliUsername\tURLConnection", e);
+        }
+
+        String line = "";
+        StringBuilder textStr = new StringBuilder();
+        while (line != null) {
+            //将10行内容追加到textStr字符串中
+            for (int i = 0; i < 10; i++) {
+                try {
+                    assert bufIn != null;
+                    line = bufIn.readLine();
+
+                    if (line != null) {
+                        textStr.append(line);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    log("getBiliUsername\t空指针异常", e);
+                }
+            }
+            //将img标签正则封装对象再调用matcher方法获取一个Matcher对象
+            final Matcher textMatcher = Pattern.compile(reg).matcher(textStr.toString());
+            //查找匹配文本
+            if (textMatcher.find()) {
+                // 将匹配结果添加到user1中
+                user.setName(textMatcher.group(1));
+            } else {
+                if ("{\"code\":-412,\"message\":\"请求被拦截\",\"ttl\":1,\"data\":null}".equals(textStr.toString())) {
+                    user = getBiliApi(user, id, "[\\W|\\w]+<title>([\\w|\\W]+)的个人空间_哔哩哔哩_Bili", "https://space.bilibili.com/");
+                    return user;
+                } else {
+                    // 若通过BiliBili API无法匹配信息则返回空 则从数据库中删除该用户
+                    System.out.println(user);
+
+                    // 将删除信息写入delete日志
+                    FileUtils.fileLinesWrite("opt//javaApps//log//deleteLog.txt",
+                            "User:\t" + user + "\t删除结果：" + deleteUser(user), true);
+                    return null;
+                }
+            }
+
+        }
+
+        return user;
     }
 }

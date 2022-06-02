@@ -38,7 +38,7 @@ public class QueryUIDController {
     @ResponseBody
     @RequestMapping(value = "getUid", method = RequestMethod.GET)
     public List<User> queryByHex(User user, HttpServletRequest request) throws IOException {
-        return queryService.queryUID(user, request);
+        return queryService.queryUiD(user, request);
     }
 
     /**
