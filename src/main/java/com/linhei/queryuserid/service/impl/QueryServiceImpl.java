@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.linhei.queryuserid.entity.User;
 import com.linhei.queryuserid.mapper.UserMapper;
 import com.linhei.queryuserid.service.QueryService;
-import com.linhei.queryuserid.utils.FileUtils;
+import com.linhei.queryuserid.utils.FileUtilss;
 import com.linhei.queryuserid.utils.IpUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -202,8 +202,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
 
     /**
      * user1为返回的最终结果
-     * user2为查询数据库的结果
-     * user为用于通过id转crc32并转16进制的结果
+     * user为用于通过id转crc32并转16进制的结果和在数据库中查询的结果
      *
      * @param id      用户id
      * @param request 请求信息
@@ -214,19 +213,14 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
 
         // 获取客户端IP地址
         String ip = IpUtil.getIpAddr(request);
-
         // 先记录后查询 防止查询失败不记录
         recordLog("getBiliUsername", ip, String.valueOf(id));
-
         // 需要查询的用户 用于比对用户名是否更新
         User user = new User(id);
-
         // 查询数据库中符合条件的结果
         List<User> list;
-
         // 对数据库进行查询 获取用户信息
         list = queryUiD(user, request);
-
         // 若list大小为0则返回null
         if (list == null || list.size() == 0) {
             return null;
@@ -244,7 +238,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
         // 获取hex值和当前时间
         User user1 = getHex(new User(id));
 
-        final String reg = "\"mid\":\"\\d{1,10}\",\"name\":\"([\\W\\w]{1,16})\",\"approve\"";
+        final String reg = "\"mid\":\"\\d{1,11}\",\"name\":\"([\\W\\w]{1,16})\",\"approve\"";
 
         // 调用爬取API的方法
         user1 = getBiliApi(user1, id, reg, "https://api.bilibili.com/x/web-interface/card?mid=");
@@ -300,12 +294,9 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
             if (user.getTableName() == null) {
                 user.setTableName(getUserTableName(user.getHex()));
             }
-            //将当前系统时间加入用户实体类中
-            user.setUpdateTime(new Date());
+            //将当前系统时间加入用户实体类中            user.setUpdateTime(new Date()); // 由于MySQL时间字段增加了时间随更改而更改故而不需要程序中添加时间
             return this.baseMapper.insertUser(user);
         }
-
-
         return false;
     }
 
@@ -325,6 +316,22 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
         return this.baseMapper.deleteUser(user);
     }
 
+    @Override
+    public List<String> getTableList() {
+        return this.baseMapper.getTableList();
+    }
+
+
+    // 表名    private List<String> tableList;
+
+    /**
+     * 定时获取数据库中所有的表名
+     */
+//    @PostConstruct // 项目启动后执行注解    @Scheduled(cron = "0 0 */8 * * ?") // 设置定时任务注解 每过8小时执行一次
+//    private void getTableName() {
+//        tableList = getTableList();
+//    }
+
 
     /**
      * @param methodName 方法名
@@ -335,11 +342,11 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
         String information = methodName + "\tIP=" + ip + "\t查询信息=" + content + "\tTime=" + new Date();
 
         if ("127.0.0.1".equals(ip)) {
-            FileUtils.fileLinesWrite("opt//javaApps//log//LocalHostIP//" + methodName + ".txt",
+            FileUtilss.fileLinesWrite("opt//javaApps//log//LocalHostIP//" + methodName + ".txt",
                     information,
                     true);
         } else {
-            FileUtils.fileLinesWrite("opt//javaApps//log//ClientIP//" + methodName + ".txt",
+            FileUtilss.fileLinesWrite("opt//javaApps//log//ClientIP//" + methodName + ".txt",
                     information,
                     true);
         }
@@ -352,7 +359,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
      * @param e Exception
      */
     public static void log(String methodName, Exception e) {
-        FileUtils.fileLinesWrite("opt//javaApps//log//log.txt", methodName + "\t" + e.toString(), true);
+        FileUtilss.fileLinesWrite("opt//javaApps//log//log.txt", methodName + "\t" + e.toString(), true);
     }
 
     /**
@@ -405,14 +412,14 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
                 user.setName(textMatcher.group(1));
             } else {
                 if ("{\"code\":-412,\"message\":\"请求被拦截\",\"ttl\":1,\"data\":null}".equals(textStr.toString())) {
-                    user = getBiliApi(user, id, "[\\W|\\w]+<title>([\\w|\\W]+)的个人空间_哔哩哔哩_Bili", "https://space.bilibili.com/");
+                    user = getBiliApi(user, id, "[\\W|\\w]+<title>([\\w|\\W]{1,16})的个人空间_哔哩哔哩_Bili", "https://space.bilibili.com/");
                     return user;
                 } else {
                     // 若通过BiliBili API无法匹配信息则返回空 则从数据库中删除该用户
                     System.out.println(user);
 
                     // 将删除信息写入delete日志
-                    FileUtils.fileLinesWrite("opt//javaApps//log//deleteLog.txt",
+                    FileUtilss.fileLinesWrite("opt//javaApps//log//deleteLog.txt",
                             "User:\t" + user + "\t删除结果：" + deleteUser(user), true);
                     return null;
                 }
@@ -421,5 +428,44 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
         }
 
         return user;
+    }
+
+    /**
+     * 签到用定时执行脚本
+     *
+     * @param url    链接
+     * @param cookie cookie
+     * @param authorization 认证
+     */
+    @Override
+    public String signIn(String url, String cookie, String authorization) {
+        BufferedReader bufIn = null;
+        try {
+            URL urlC = new URL(url);
+            URLConnection urlConn = urlC.openConnection();
+            //设置请求属性，有部分网站不加这句话会抛出IOException: Server returned HTTP response code: 403 for URL异常
+            //如：b站
+            urlConn.setRequestProperty("User-Agent",
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.60 Safari/537.36");
+
+            urlConn.addRequestProperty("cookie", cookie);
+            if (url.contains("255")) {
+                urlConn.addRequestProperty("authorization", authorization);
+            }
+            bufIn = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
+        } catch (IOException e) {
+            e.printStackTrace();
+
+        }
+
+        try {
+            assert bufIn != null;
+            return bufIn.readLine();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+        return url;
     }
 }

@@ -1,8 +1,11 @@
-package com.linhei.queryuserid.conrtoller;
+package com.linhei.queryuserid.controller;
 
 import com.linhei.queryuserid.entity.User;
 import com.linhei.queryuserid.service.QueryService;
-import com.linhei.queryuserid.utils.FileUtils;
+import com.linhei.queryuserid.utils.FileUtilss;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.LineIterator;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -13,6 +16,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
+import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.List;
@@ -23,6 +27,7 @@ import java.util.List;
 @Controller
 //@RestController
 @RequestMapping("/user")
+@Slf4j
 public class QueryUIDController {
 
     @Autowired
@@ -142,6 +147,32 @@ public class QueryUIDController {
         return queryService.createTable("user_" + tableName) == 0 ? "创建成功" : "";
     }
 
+    /**
+     * 查看日志
+     *
+     * @param path 路径
+     * @return 日志
+     */
+    @RequestMapping(value = "/getLog", method = RequestMethod.GET)
+    @ResponseBody
+    public String getLog(String path) {
+        String s = "client";
+
+        // 使用if判断是否为查看客户端的日志
+        if (null != path && !path.contains(s)) {
+            String mainPath = "opt//javaApps//log//";
+            return getString(mainPath + path);
+        } else if (null != path && path.contains(s)) {
+            String clientPath = "opt//javaApps//log//ClientIP//";
+            return getString(clientPath + path.replaceFirst("client", ""));
+        }
+        // 若path为空则返回签到日志
+        return "BiliSignLog：\n<br/>" +
+                getString("opt//javaApps//log//BiliSign.txt") +
+                "\n<br/>255SignLog：\n<br/>" +
+                getString("opt//javaApps//log//255sign.txt");
+    }
+
 
     /**
      * 创建私有全局变量key
@@ -155,10 +186,62 @@ public class QueryUIDController {
     private void getKey() {
         // 获取本次key 对key重写
         key = RandomStringUtils.randomAlphanumeric(8);
-        System.out.println(key);
         // 将key写入key.txt文件中 用于校验 flag为false表示覆盖写入
-        FileUtils.fileLinesWrite("opt//javaApps//key//key.txt",
+        FileUtilss.fileLinesWrite("opt//javaApps//key//key.txt",
                 key, false);
+    }
+
+    /**
+     * 调用签到方法
+     */
+    @PostConstruct // 项目启动后执行注解
+    @Scheduled(cron = "0 0 8 * * ?") // 设置定时任务注解 每过一天执行一次
+    private void signIn() {
+        // 255sign
+        String cookie255 = getString("opt//javaApps//cookie//255");
+        String authorization = getString("opt//javaApps//cookie//255Authorization");
+        String result255 = queryService.signIn("https://2550505.com/sign", cookie255, authorization);
+        String day255 = queryService.signIn("https://2550505.com/sign/days", cookie255, null);
+        FileUtilss.fileLinesWrite("opt//javaApps//log//255sign.txt", "day:" + day255 + "\tresult:" + result255
+                , true);
+        // biliSign
+        String biliCookie = getString("opt//javaApps//cookie//bili");
+        String biliResult = queryService.signIn("https://api.live.bilibili.com/xlive/web-ucenter/v1/sign/DoSign", biliCookie, null);
+        FileUtilss.fileLinesWrite("opt//javaApps//log//BiliSign.txt", "result: " + biliResult
+                , true);
+    }
+
+    /**
+     * 每月执行补签
+     */
+    @Scheduled(cron = "0 0 8 1 * ?")//定时任务注解 每月1号执行
+    private void signFill() {
+        String cookie255 = getString("opt//javaApps//cookie//255");
+        String authorization = getString("opt//javaApps//cookie//255Authorization");
+        String result255 = queryService.signIn("https://2550505.com/sign/fill", cookie255, authorization);
+        FileUtilss.fileLinesWrite("opt//javaApps//log//255fill.txt", "\tresult:" + result255
+                , true);
+    }
+
+    /**
+     * 获取cookie
+     *
+     * @param path cookie路径
+     * @return cookie
+     */
+    private String getString(String path) {
+        StringBuilder cookie = new StringBuilder();
+        try {
+            LineIterator it = FileUtils.lineIterator(new File(path), "UTF-8");
+            while (it.hasNext()) {
+                cookie.append(it.nextLine());
+            }
+            it.close();
+        } catch (IOException e) {
+            log.warn(e.toString());
+        }
+
+        return cookie.toString();
     }
 
 

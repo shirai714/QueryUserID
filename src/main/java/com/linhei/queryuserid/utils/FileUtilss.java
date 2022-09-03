@@ -10,7 +10,7 @@ import java.util.*;
  */
 
 @SuppressWarnings({"resource", "unused"})
-public class FileUtils {
+public class FileUtilss {
 
     /**
      * 获取windows/linux的项目根目录

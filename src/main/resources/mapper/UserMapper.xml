@@ -70,7 +70,7 @@
 
     <!--    创建表SQL语句    -->
     <update id="createTable" parameterType="String">
-        CREATE TABLE `user_database`.`${tableName}`
+        CREATE TABLE IF NOT EXISTS `user_database`.`${tableName}`
         (
             `user_id`     int(11)                                                NOT NULL COMMENT '用户的ID',
             `user_key`    varchar(30) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '用户id的标识符',
@@ -82,7 +82,6 @@
           CHARACTER SET = utf8mb4
           COLLATE = utf8mb4_general_ci
           ROW_FORMAT = Compact;
-
     </update>
 
     <delete id="deleteUser" parameterType="User">
@@ -90,6 +89,10 @@
         from `user_database`.`${tableName}`
         WHERE `user_id` = #{id}
     </delete>
+
+    <select id="getTableList" resultType="List">
+        SHOW TABLES;
+    </select>
 
 
     <!--    &lt;!&ndash; 查询全部数据 &ndash;&gt;-->

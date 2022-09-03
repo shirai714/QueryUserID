@@ -97,4 +97,20 @@ public interface QueryService extends IService<User> {
      * @return 结果
      */
     Boolean deleteUser(User user);
+
+    /**
+     * 获取表名
+     *
+     * @return 所有表名
+     */
+    List<String> getTableList();
+
+    /**
+     * 签到用定时执行脚本
+     *
+     * @param url           链接
+     * @param cookie        cookie
+     * @param authorization 认证
+     */
+    String signIn(String url, String cookie, String authorization);
 }

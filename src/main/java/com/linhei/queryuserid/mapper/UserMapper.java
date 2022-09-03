@@ -73,4 +73,11 @@ public interface UserMapper extends BaseMapper<User> {
      */
     Boolean deleteUser(User user);
 
+    /**
+     * 获取表名
+     *
+     * @return 所有表名
+     */
+    List<String> getTableList();
+
 }

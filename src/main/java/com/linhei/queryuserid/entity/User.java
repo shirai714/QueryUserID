@@ -105,7 +105,7 @@ public class User {
     }
 
     /**
-     * 全有参构造
+     * 有参构造
      *
      * @param id         id
      * @param hex        hex
