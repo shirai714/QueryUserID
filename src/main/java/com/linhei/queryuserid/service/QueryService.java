@@ -112,5 +112,5 @@ public interface QueryService extends IService<User> {
      * @param cookie        cookie
      * @param authorization 认证
      */
-    String signIn(String url, String cookie, String authorization);
+    String requestLink(String url, String cookie, String authorization);
 }

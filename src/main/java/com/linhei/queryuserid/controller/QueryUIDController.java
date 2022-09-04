@@ -20,6 +20,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author linhei
@@ -194,19 +196,19 @@ public class QueryUIDController {
     /**
      * 调用签到方法
      */
-    @PostConstruct // 项目启动后执行注解
+//    @PostConstruct // 项目启动后执行注解
     @Scheduled(cron = "0 0 8 * * ?") // 设置定时任务注解 每过一天执行一次
     private void signIn() {
         // 255sign
         String cookie255 = getString("opt//javaApps//cookie//255");
         String authorization = getString("opt//javaApps//cookie//255Authorization");
-        String result255 = queryService.signIn("https://2550505.com/sign", cookie255, authorization);
-        String day255 = queryService.signIn("https://2550505.com/sign/days", cookie255, null);
+        String result255 = queryService.requestLink("https://2550505.com/sign", cookie255, authorization);
+        String day255 = queryService.requestLink("https://2550505.com/sign/days", cookie255, null);
         FileUtilss.fileLinesWrite("opt//javaApps//log//255sign.txt", "day:" + day255 + "\tresult:" + result255
                 , true);
         // biliSign
         String biliCookie = getString("opt//javaApps//cookie//bili");
-        String biliResult = queryService.signIn("https://api.live.bilibili.com/xlive/web-ucenter/v1/sign/DoSign", biliCookie, null);
+        String biliResult = queryService.requestLink("https://api.live.bilibili.com/xlive/web-ucenter/v1/sign/DoSign", biliCookie, null);
         FileUtilss.fileLinesWrite("opt//javaApps//log//BiliSign.txt", "result: " + biliResult
                 , true);
     }
@@ -216,11 +218,22 @@ public class QueryUIDController {
      */
     @Scheduled(cron = "0 0 8 1 * ?")//定时任务注解 每月1号执行
     private void signFill() {
+
         String cookie255 = getString("opt//javaApps//cookie//255");
         String authorization = getString("opt//javaApps//cookie//255Authorization");
-        String result255 = queryService.signIn("https://2550505.com/sign/fill", cookie255, authorization);
-        FileUtilss.fileLinesWrite("opt//javaApps//log//255fill.txt", "\tresult:" + result255
-                , true);
+        final String reg = "\"code\":\\d+,\"count\":(\\d+)";
+        Matcher matcher = Pattern.compile(reg).matcher(queryService.requestLink("https://2550505.com/sign/card", cookie255, authorization).toString());
+        String group = null;
+        if (matcher.find()) {
+            group = matcher.group(1);
+        }
+        assert group != null;
+        // 若补签卡大于1则补签
+        for (int i = 0; i < Integer.parseInt(group); i++) {
+            String result255 = queryService.requestLink("https://2550505.com/sign/fill", cookie255, authorization);
+            FileUtilss.fileLinesWrite("opt//javaApps//log//255fill.txt", "\tresult:" + result255
+                    , true);
+        }
     }
 
     /**
@@ -232,9 +245,11 @@ public class QueryUIDController {
     private String getString(String path) {
         StringBuilder cookie = new StringBuilder();
         try {
+            // 迭代器迭代本地文件
             LineIterator it = FileUtils.lineIterator(new File(path), "UTF-8");
             while (it.hasNext()) {
                 cookie.append(it.nextLine());
+                cookie.append("<br/>");
             }
             it.close();
         } catch (IOException e) {

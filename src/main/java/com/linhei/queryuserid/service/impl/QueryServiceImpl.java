@@ -6,8 +6,7 @@ import com.linhei.queryuserid.mapper.UserMapper;
 import com.linhei.queryuserid.service.QueryService;
 import com.linhei.queryuserid.utils.FileUtilss;
 import com.linhei.queryuserid.utils.IpUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.stereotype.Service;
 
@@ -34,9 +33,8 @@ import java.util.zip.CRC32;
  */
 @EnableScheduling
 @Service
+@Slf4j
 public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements QueryService {
-
-    private final static Logger logger = LoggerFactory.getLogger(QueryServiceImpl.class);
 
     @Override
     public List<User> queryUiD(User user, HttpServletRequest request) {
@@ -402,14 +400,15 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
                 } catch (IOException e) {
                     e.printStackTrace();
                     log("getBiliUsername\t空指针异常", e);
+                    log.warn("getBiliUsername\t空指针异常" + e.getMessage());
                 }
             }
             //将img标签正则封装对象再调用matcher方法获取一个Matcher对象
-            final Matcher textMatcher = Pattern.compile(reg).matcher(textStr.toString());
+            final Matcher matcher = Pattern.compile(reg).matcher(textStr.toString());
             //查找匹配文本
-            if (textMatcher.find()) {
+            if (matcher.find()) {
                 // 将匹配结果添加到user1中
-                user.setName(textMatcher.group(1));
+                user.setName(matcher.group(1));
             } else {
                 if ("{\"code\":-412,\"message\":\"请求被拦截\",\"ttl\":1,\"data\":null}".equals(textStr.toString())) {
                     user = getBiliApi(user, id, "[\\W|\\w]+<title>([\\w|\\W]{1,16})的个人空间_哔哩哔哩_Bili", "https://space.bilibili.com/");
@@ -433,12 +432,12 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
     /**
      * 签到用定时执行脚本
      *
-     * @param url    链接
-     * @param cookie cookie
+     * @param url           链接
+     * @param cookie        cookie
      * @param authorization 认证
      */
     @Override
-    public String signIn(String url, String cookie, String authorization) {
+    public String requestLink(String url, String cookie, String authorization) {
         BufferedReader bufIn = null;
         try {
             URL urlC = new URL(url);
@@ -454,7 +453,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
             }
             bufIn = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
         } catch (IOException e) {
-            e.printStackTrace();
+            log.warn("requestLink实现方法域名请求warn:" + e.getMessage());
 
         }
 
@@ -462,7 +461,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
             assert bufIn != null;
             return bufIn.readLine();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.warn("requestLink实现方法bufIn warn:" + e.getMessage());
         }
 
 
