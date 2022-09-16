@@ -2,7 +2,8 @@ package com.linhei.queryuserid.controller;
 
 import com.linhei.queryuserid.entity.User;
 import com.linhei.queryuserid.service.QueryService;
-import com.linhei.queryuserid.utils.FileUtilss;
+import com.linhei.queryuserid.utils.FileUtilForReadWrite;
+import com.linhei.queryuserid.utils.RedisUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
@@ -32,8 +33,17 @@ import java.util.regex.Pattern;
 @Slf4j
 public class QueryUIDController {
 
+    /**
+     * queryService
+     */
     @Autowired
     QueryService queryService;
+
+    /**
+     * RedisUtil
+     */
+    @Autowired
+    RedisUtil redisUtil;
 
 
     /**
@@ -95,7 +105,7 @@ public class QueryUIDController {
         if (key == null) {
             return "密钥为空";
 
-        } else if (!key.equals(this.key)) {
+        } else if (!key.equals(this.keyValue)) {
             // 判断是否与key是否相同
             return "密钥错误，请确认后重试";
         }
@@ -115,7 +125,7 @@ public class QueryUIDController {
         // 判断数据密钥是否为空
         if (key == null) {
             return "密钥为空";
-        } else if (!key.equals(this.key)) {
+        } else if (!key.equals(this.keyValue)) {
             // 判断是否与key是否相同
             return "密钥错误，请确认后重试";
         }
@@ -142,7 +152,7 @@ public class QueryUIDController {
         // 判断数据密钥是否为空
         if (key == null) {
             return "密钥为空";
-        } else if (!key.equals(this.key)) {
+        } else if (!key.equals(this.keyValue)) {
             // 判断是否与key是否相同
             return "密钥错误，请确认后重试";
         }
@@ -179,18 +189,21 @@ public class QueryUIDController {
     /**
      * 创建私有全局变量key
      */
-    private String key = "";
+    private String keyValue = "";
 
     @PostConstruct // 项目启动后执行注解
     @Scheduled(cron = "0 0 */8 * * ?") // 设置定时任务注解 每过8小时执行一次
 //    @Scheduled(fixedDelay = 5000) // 设置定时任务注解 每五秒执行一次
 //    @Scheduled(initialDelay = 1, fixedRate = 5) //第一次延迟1秒后执行，之后按fixedRate的规则每5秒执行一次
     private void getKey() {
+
         // 获取本次key 对key重写
-        key = RandomStringUtils.randomAlphanumeric(8);
-        // 将key写入key.txt文件中 用于校验 flag为false表示覆盖写入
-        FileUtilss.fileLinesWrite("opt//javaApps//key//key.txt",
-                key, false);
+        keyValue = RandomStringUtils.randomAlphanumeric(8);
+        // 将key加入redis中  用于校验
+        String key = "key";
+        redisUtil.set(key, keyValue);
+        // 设置键为"key"的过期时间为8小时
+        redisUtil.expire(key, 28800L);
     }
 
     /**
@@ -204,12 +217,12 @@ public class QueryUIDController {
         String authorization = getString("opt//javaApps//cookie//255Authorization");
         String result255 = queryService.requestLink("https://2550505.com/sign", cookie255, authorization);
         String day255 = queryService.requestLink("https://2550505.com/sign/days", cookie255, null);
-        FileUtilss.fileLinesWrite("opt//javaApps//log//255sign.txt", "day:" + day255 + "\tresult:" + result255
+        FileUtilForReadWrite.fileLinesWrite("opt//javaApps//log//255sign.txt", "day:" + day255 + "\tresult:" + result255
                 , true);
         // biliSign
         String biliCookie = getString("opt//javaApps//cookie//bili");
         String biliResult = queryService.requestLink("https://api.live.bilibili.com/xlive/web-ucenter/v1/sign/DoSign", biliCookie, null);
-        FileUtilss.fileLinesWrite("opt//javaApps//log//BiliSign.txt", "result: " + biliResult
+        FileUtilForReadWrite.fileLinesWrite("opt//javaApps//log//BiliSign.txt", "result: " + biliResult
                 , true);
     }
 
@@ -231,7 +244,7 @@ public class QueryUIDController {
         // 若补签卡大于1则补签
         for (int i = 0; i < Integer.parseInt(group); i++) {
             String result255 = queryService.requestLink("https://2550505.com/sign/fill", cookie255, authorization);
-            FileUtilss.fileLinesWrite("opt//javaApps//log//255fill.txt", "\tresult:" + result255
+            FileUtilForReadWrite.fileLinesWrite("opt//javaApps//log//255fill.txt", "\tresult:" + result255
                     , true);
         }
     }
@@ -243,22 +256,23 @@ public class QueryUIDController {
      * @return cookie
      */
     private String getString(String path) {
-        StringBuilder cookie = new StringBuilder();
+        StringBuilder res = new StringBuilder();
         try {
             // 迭代器迭代本地文件
             LineIterator it = FileUtils.lineIterator(new File(path), "UTF-8");
             while (it.hasNext()) {
-                cookie.append(it.nextLine());
-                cookie.append("<br/>");
+                res.append(it.nextLine());
+                if (!path.contains("cookie")) {
+                    res.append("<br/>");
+                }
             }
             it.close();
         } catch (IOException e) {
             log.warn(e.toString());
         }
 
-        return cookie.toString();
+        return res.toString();
     }
-
 
 }
 

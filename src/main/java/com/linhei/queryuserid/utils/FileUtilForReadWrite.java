@@ -6,11 +6,12 @@ import java.util.*;
 
 /**
  * 代码来源
- * https://www.cnblogs.com/xuexidememeda/p/10222212.html
+ *
+ * @author https://www.cnblogs.com/xuexidememeda/p/10222212.html
  */
 
 @SuppressWarnings({"resource", "unused"})
-public class FileUtilss {
+public class FileUtilForReadWrite {
 
     /**
      * 获取windows/linux的项目根目录

@@ -4,5 +4,10 @@
       "name": "server.ssl.key-store.classpath",
       "type": "java.lang.String",
       "description": "Description for server.ssl.key-store.classpath."
-  }
-] }
+    },
+    {
+      "name": "spring.redis.jedis",
+      "type": "java.lang.String",
+      "description": "Description for spring.redis.jedis."
+    }
+  ] }

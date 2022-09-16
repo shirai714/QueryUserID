@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.linhei.queryuserid.entity.User;
 import com.linhei.queryuserid.mapper.UserMapper;
 import com.linhei.queryuserid.service.QueryService;
-import com.linhei.queryuserid.utils.FileUtilss;
+import com.linhei.queryuserid.utils.FileUtilForReadWrite;
 import com.linhei.queryuserid.utils.IpUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -144,7 +144,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
             tableName = "user_" + hex.charAt(0);
 //            System.out.println(user.getHexTop());
             e.printStackTrace();
-            log("getUserTableName\t hex=" + hex, e);
+            log.warn("getUserTableName\t hex=" + hex, e);
 
             System.out.println("单字符");
         }
@@ -340,25 +340,17 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
         String information = methodName + "\tIP=" + ip + "\t查询信息=" + content + "\tTime=" + new Date();
 
         if ("127.0.0.1".equals(ip)) {
-            FileUtilss.fileLinesWrite("opt//javaApps//log//LocalHostIP//" + methodName + ".txt",
+            FileUtilForReadWrite.fileLinesWrite("opt//javaApps//log//LocalHostIP//" + methodName + ".txt",
                     information,
                     true);
         } else {
-            FileUtilss.fileLinesWrite("opt//javaApps//log//ClientIP//" + methodName + ".txt",
+            FileUtilForReadWrite.fileLinesWrite("opt//javaApps//log//ClientIP//" + methodName + ".txt",
                     information,
                     true);
         }
 
     }
 
-    /**
-     * 将错误信息记录到日志文件中
-     *
-     * @param e Exception
-     */
-    public static void log(String methodName, Exception e) {
-        FileUtilss.fileLinesWrite("opt//javaApps//log//log.txt", methodName + "\t" + e.toString(), true);
-    }
 
     /**
      * 爬取BiliBli的API的方法
@@ -382,7 +374,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
             bufIn = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
         } catch (IOException e) {
             e.printStackTrace();
-            log("getBiliUsername\tURLConnection", e);
+            log.warn("getBiliUsername\tURLConnection", e);
         }
 
         String line = "";
@@ -399,8 +391,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
-                    log("getBiliUsername\t空指针异常", e);
-                    log.warn("getBiliUsername\t空指针异常" + e.getMessage());
+                    log.warn("getBiliUsername\t空指针异常", e);
                 }
             }
             //将img标签正则封装对象再调用matcher方法获取一个Matcher对象
@@ -418,7 +409,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
                     System.out.println(user);
 
                     // 将删除信息写入delete日志
-                    FileUtilss.fileLinesWrite("opt//javaApps//log//deleteLog.txt",
+                    FileUtilForReadWrite.fileLinesWrite("opt//javaApps//log//deleteLog.txt",
                             "User:\t" + user + "\t删除结果：" + deleteUser(user), true);
                     return null;
                 }
@@ -449,7 +440,10 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
 
             urlConn.addRequestProperty("cookie", cookie);
             if (url.contains("255")) {
+                urlConn.addRequestProperty("Referer", "https://2550505.com/");
+                urlConn.addRequestProperty("Referrer-Policy", "strict-origin-when-cross-origin");
                 urlConn.addRequestProperty("authorization", authorization);
+                urlConn.addRequestProperty("accept-language", "zh-CN,zh;q=0.9,en;q=0.8");
             }
             bufIn = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
         } catch (IOException e) {
