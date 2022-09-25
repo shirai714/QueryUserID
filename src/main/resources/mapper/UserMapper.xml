@@ -31,7 +31,7 @@
     </sql>
 
     <!--    根据HEX查询数据SQL语句  -->
-    <select id="queryUID" parameterType="String" resultType="User">
+    <select id="queryUiD" parameterType="String" resultType="User">
         SELECT
         <include refid="Base_Column_List"/>
         FROM ${tableName} WHERE `user_key`= #{hex}

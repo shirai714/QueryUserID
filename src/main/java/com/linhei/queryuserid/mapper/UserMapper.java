@@ -19,7 +19,7 @@ public interface UserMapper extends BaseMapper<User> {
      * @param user 实体类
      * @return 查询结果
      */
-    List<User> queryUID(User user);
+    List<User> queryUiD(User user);
 
     /**
      * queryUserList方法

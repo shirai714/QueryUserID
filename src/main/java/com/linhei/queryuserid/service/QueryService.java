@@ -39,13 +39,6 @@ public interface QueryService extends IService<User> {
      */
     List<User> queryUserList(String tableName, String start, String length, HttpServletRequest request) throws IOException;
 
-    /**
-     * 获取表名方法
-     *
-     * @param hex 用户key
-     * @return 表名
-     */
-    String getUserTableName(String hex);
 
     /**
      * 获取用户名方法
@@ -55,7 +48,7 @@ public interface QueryService extends IService<User> {
      * @return 结果
      * @throws MalformedURLException 异常
      */
-    User getBiliUsername(long id, HttpServletRequest request) throws MalformedURLException;
+    User getUser(long id, HttpServletRequest request) throws MalformedURLException;
 
     /**
      * getTableCount方法
@@ -105,12 +98,4 @@ public interface QueryService extends IService<User> {
      */
     List<String> getTableList();
 
-    /**
-     * 签到用定时执行脚本
-     *
-     * @param url           链接
-     * @param cookie        cookie
-     * @param authorization 认证
-     */
-    String requestLink(String url, String cookie, String authorization);
 }

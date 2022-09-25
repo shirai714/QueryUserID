@@ -27,7 +27,7 @@ public class RedisConfig {
         template.setValueSerializer(redisSerializer);
         //value hashmap序列化
         template.setHashValueSerializer(redisSerializer);
-        //key haspmap序列化
+        //key hashmap序列化
         template.setHashKeySerializer(redisSerializer);
 
         return template;

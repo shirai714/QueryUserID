@@ -1,6 +1,7 @@
 package com.linhei.queryuserid.utils;
 
 
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,10 +14,9 @@ import java.util.Enumeration;
  * @Description: 获取IP的方法
  * @Date: 2021/1/18 15:02
  */
-//@Slf4j
+@Slf4j
 public class IpUtil {
 
-    private static final Logger log = LoggerFactory.getLogger(IpUtil.class);
     private static final String LOCAL_IP = "127.0.0.1";
 
     /**

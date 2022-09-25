@@ -9,6 +9,7 @@ import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactor
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+
 /**
  * @author linhei
  */
@@ -18,7 +19,7 @@ public class HttpToHttpsConfig {
     /**
      * http重定向到https
      *
-     * @return
+     * @return 返回容器
      */
     @Bean
     public TomcatServletWebServerFactory servletContainer() {
@@ -42,10 +43,10 @@ public class HttpToHttpsConfig {
         Connector connector = new Connector("org.apache.coyote.http11.Http11NioProtocol");
         connector.setScheme("https");
         //Connector监听的http的端口号
-        connector.setPort(80);
+        connector.setPort(2551);
         connector.setSecure(false);
-        //监听到http的端口号后转向到的https的端口号
-        connector.setRedirectPort(443);
+        //监听到http的端口号后转向到的 yml 配置的端口号
+        connector.setRedirectPort(2550);
         return connector;
     }
 }

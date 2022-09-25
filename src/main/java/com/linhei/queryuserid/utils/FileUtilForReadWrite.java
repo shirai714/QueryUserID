@@ -19,7 +19,7 @@ public class FileUtilForReadWrite {
      * @return
      */
     public static String getConTextPath() {
-        String fileUrl = Thread.currentThread().getContextClassLoader().getResource("").getPath();
+        String fileUrl = Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResource("")).getPath();
         if ("usr".equals(fileUrl.substring(1, 4))) {
             fileUrl = (fileUrl.substring(0, fileUrl.length() - 16));//linux
         } else {
