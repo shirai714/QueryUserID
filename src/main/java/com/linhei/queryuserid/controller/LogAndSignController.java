@@ -18,7 +18,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 查询用Controller
+ * 查询日志和自动签到用Controller
  *
  * @author linhei
  */
