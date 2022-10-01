@@ -4,7 +4,7 @@
 需要传入参数：Hex或id
 
 /user/getUser 通过id查询用户，查询时会通过B站API获取符合该UID的用户名，并对数据库进行更新
-需要传入参数：id
+需要传入参数：user
 
 /user/list   通过表名查询用户，使用start和length限定查询的长度
 需要传入参数：tableName
@@ -21,6 +21,8 @@
 /user/createTable 通过get请求方法实现创建表，需要校验Key
 需要传入参数:tableName,key
 
+/user/getUserForChar 通过get请求方法实现通过弹幕查询用户信息
+需要传入参数:bv号,bChar弹幕内容,timeline弹幕发送时间
 
 IpUtil类作者：
 /**

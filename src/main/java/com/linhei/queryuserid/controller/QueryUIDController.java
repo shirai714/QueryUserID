@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 
@@ -64,17 +66,31 @@ public class QueryUIDController {
     /**
      * 查询用户
      *
-     * @param id      用户id
+     * @param user    用户
      * @param request 请求
      * @return 查询结果
      * @throws MalformedURLException 格式异常
      */
     @RequestMapping(value = "/getUser", method = RequestMethod.GET)
     @ResponseBody
-    public User getUser(long id, HttpServletRequest request) throws MalformedURLException {
-        return queryService.getUser(id, request);
+    public User getUser(User user, HttpServletRequest request) throws MalformedURLException {
+        return queryService.getUser(user, request);
     }
 
+    /**
+     * 通过弹幕内容获取用户
+     * 使用弹幕的发送时间详细确认用户
+     *
+     * @param bv       BV号
+     * @param bChar    弹幕
+     * @param timeline 弹幕的发送时间
+     * @return 查询出的结果
+     */
+    @ResponseBody
+    @RequestMapping(value = "/getUserForChar", method = RequestMethod.GET)
+    public HashMap<String, ArrayList<String>> getUserChar(String bv, String bChar, String timeline, HttpServletRequest request) {
+        return queryService.getUserChar(bv, bChar, timeline, request);
+    }
 
 }
 

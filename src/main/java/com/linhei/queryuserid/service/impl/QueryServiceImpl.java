@@ -3,18 +3,21 @@ package com.linhei.queryuserid.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.linhei.queryuserid.entity.User;
 import com.linhei.queryuserid.mapper.UserMapper;
+import com.linhei.queryuserid.service.OtherService;
 import com.linhei.queryuserid.service.QueryService;
 import com.linhei.queryuserid.utils.IpUtil;
 import com.linhei.queryuserid.utils.RedisUtil;
 import com.linhei.queryuserid.utils.Util;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.LineIterator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.Iterator;
-import java.util.List;
+import java.io.File;
+import java.util.*;
 
 
 /**
@@ -30,7 +33,11 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
     @Autowired
     RedisUtil redisUtil;
 
+    @Autowired
+    OtherService otherService;
+
     Util util = new Util();
+
 
     @Override
     public List<User> queryUiD(User user, HttpServletRequest request) {
@@ -144,19 +151,18 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
      * user1为返回的最终结果
      * user为用于通过id转crc32并转16进制的结果和在数据库中查询的结果
      *
-     * @param id      用户id
+     * @param user    用户
      * @param request 请求信息
      * @return user1
      */
     @Override
-    public User getUser(long id, HttpServletRequest request) {
+    public User getUser(User user, HttpServletRequest request) {
+
 
         // 获取客户端IP地址
         String ip = IpUtil.getIpAddr(request);
         // 先记录后查询 防止查询失败不记录
-        util.recordLog("getUser", ip, String.valueOf(id));
-        // 需要查询的用户 用于比对用户名是否更新
-        User user = new User(id);
+        util.recordLog("getUser", ip, String.valueOf(user.getId()));
         // 查询数据库中符合条件的结果
         List<User> list;
         // 对数据库进行查询 获取用户信息
@@ -166,26 +172,28 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
             return null;
         }
 
+        // 获取hex值和当前时间
+        User user1 = util.getHex(new User(user.getId()));
+
+        final String reg = "\"mid\":\"\\d{1,11}\",\"name\":\"([\\W\\w]{1,16})\",\"approve\"";
+
+
         for (User value : list) {
-            // 判断用户是否为指定用户的ID 防止信息更改错误
-            if (value.getId() == id) {
-                // 将用户更新为查询的结果
+
+            // 调用爬取API的方法
+            user1 = util.getBiliApi(user1, value.getId(), reg, "https://api.bilibili.com/x/web-interface/card?mid=%s");
+
+            // 判断用户是否为有效用户
+            if (user1 != null) {
+
+                // 若用户不是空则表明 该用户是有效用户
                 user = value;
+                // 为有效用户添加id
+                user1.setId(value.getId());
                 break;
             }
         }
 
-        // 获取hex值和当前时间
-        User user1 = util.getHex(new User(id));
-
-        final String reg = "\"mid\":\"\\d{1,11}\",\"name\":\"([\\W\\w]{1,16})\",\"approve\"";
-
-        // 调用爬取API的方法
-        user1 = util.getBiliApi(user1, id, reg, "https://api.bilibili.com/x/web-interface/card?mid=");
-
-        if (null == user1) {
-            return null;
-        }
 
         // 用于判断用户是否拥有用户名
         if (user.getName() == null) {
@@ -267,5 +275,96 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
         return this.baseMapper.getTableList();
     }
 
+    /**
+     * @param bv       BV号
+     * @param bChar    弹幕
+     * @param timeline 弹幕的发送时间
+     * @return 查询结果
+     */
+    @Override
+    public HashMap<String, ArrayList<String>> getUserChar(String bv, String bChar, String timeline, HttpServletRequest request) {
 
+        // 加上换行符后的弹幕内容
+        ArrayList<String> newlineChar = new ArrayList<>();
+
+        // 获取redis中弹幕文件的cid
+        Object bCharFileNameList = redisUtil.get(bv);
+
+        // 与bv号对应的cid
+        String cid = "";
+
+
+        // 返回结果
+        HashMap<String, ArrayList<String>> regex = new HashMap<>(16);
+        // 获取弹幕数据
+        try {
+            cid = util.regex(util.request("https://api.bilibili.com/x/player/pagelist?bvid=%s&jsonp=jsonp", bv),
+                    "[\\w+|\\W+]\"cid\":(\\d+),\"page\":[\\w+|\\W+]");
+
+            // 弹幕内容保存路径
+            String path = String.format("hdd//data//biliChar//%s.xml", cid);
+            File file = new File(path);
+
+            // 通过查询redis中存储的数据判断是否已有该BV号的弹幕文件
+            if (bCharFileNameList == null) {
+                newlineChar = util.request("https://api.bilibili.com/x/v1/dm/list.so?oid=%s", cid, "</d>", true);
+
+                bCharFileNameList = cid;
+
+                // 将弹幕文件保存到服务器硬盘
+                for (String s : newlineChar) {
+                    FileUtils.writeStringToFile(file, s, "UTF-8", true);
+                }
+            } else {
+                // 若存在则直接读取本地文件
+                LineIterator it = FileUtils.lineIterator(file, "UTF-8");
+                while (it.hasNext()) {
+                    newlineChar.add(it.nextLine());
+                }
+                it.close();
+            }
+
+            // 创建目标值的HashMap
+            HashMap<String, String> target = new HashMap<>(1);
+            // 将查询条件赋值
+            target.put("bChar", bChar);
+            target.put("timeline", timeline);
+
+            // 正则表达式
+            String reg = "<d p=\"([\\d.\\d|\\d]{1,}),\\d,\\d{1,2},\\d{1,8},(\\d{1,11}),\\d,(\\w{1,10}),\\d{1,20},\\d{1,2}\">([\\W|\\w]{1,100})</d>";
+
+            // 调用获取结果的方法
+            regex = util.regex(newlineChar, reg, target);
+            if (regex == null || regex.size() == 0) {
+                target.remove("timeline");
+                regex = util.regex(newlineChar, reg, target);
+            } else {
+                for (Map.Entry<String, ArrayList<String>> next : regex.entrySet()) {
+                    String key = next.getKey();
+                    if (key.equals("结果超过8次请输入弹幕所在时间用于详细确认")) {
+                        continue;
+                    }
+                    // 将该用户的userid添加到该 key 的 value 中
+                    User user = getUser(new User(key), request);
+                    ArrayList<String> value = next.getValue();
+                    value.add(String.valueOf(user.getId()));
+                    value.add(user.getName());
+                    next.setValue(value);
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.warn("获取弹幕数据过程中出错:\t" + e);
+        } finally {
+            // 将弹幕文件信息存储到redis中 并设定过期时间为7天过期
+            boolean flag = redisUtil.set(bv, bCharFileNameList, 604800);
+            if (!flag) {
+                log.warn("数据存入redis失败：" + cid);
+            }
+
+        }
+
+        return regex;
+    }
 }

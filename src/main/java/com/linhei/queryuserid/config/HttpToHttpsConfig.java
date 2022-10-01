@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
 /**
  * @author linhei
  */
-@Configuration
+//@Configuration
 public class HttpToHttpsConfig {
 
     /**

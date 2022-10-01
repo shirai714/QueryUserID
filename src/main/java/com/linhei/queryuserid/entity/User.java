@@ -134,6 +134,15 @@ public class User {
         this.id = id;
     }
 
+    /**
+     * 仅hex构造方法
+     *
+     * @param hex hex
+     */
+    public User(String hex) {
+        this.hex = hex;
+    }
+
     @Override
     public String toString() {
         StringBuilder user = new StringBuilder();

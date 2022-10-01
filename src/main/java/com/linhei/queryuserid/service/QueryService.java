@@ -11,6 +11,8 @@ import com.linhei.queryuserid.entity.User;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -43,12 +45,12 @@ public interface QueryService extends IService<User> {
     /**
      * 获取用户名方法
      *
-     * @param id      用户ID
+     * @param user    用户
      * @param request 请求
      * @return 结果
      * @throws MalformedURLException 异常
      */
-    User getUser(long id, HttpServletRequest request) throws MalformedURLException;
+    User getUser(User user, HttpServletRequest request) throws MalformedURLException;
 
     /**
      * getTableCount方法
@@ -98,4 +100,15 @@ public interface QueryService extends IService<User> {
      */
     List<String> getTableList();
 
+    /**
+     * 通过弹幕内容获取用户
+     * 使用弹幕的发送时间详细确认用户
+     *
+     * @param bv       BV号
+     * @param bChar    弹幕
+     * @param timeline 弹幕的发送时间
+     * @param request  请求
+     * @return 查询出的结果
+     */
+    HashMap<String, ArrayList<String>> getUserChar(String bv, String bChar, String timeline, HttpServletRequest request);
 }
