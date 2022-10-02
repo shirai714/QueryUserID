@@ -9,14 +9,12 @@ import com.linhei.queryuserid.utils.IpUtil;
 import com.linhei.queryuserid.utils.RedisUtil;
 import com.linhei.queryuserid.utils.Util;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.LineIterator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletRequest;
-import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 
@@ -181,7 +179,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
         for (User value : list) {
 
             // 调用爬取API的方法
-            user1 = util.getBiliApi(user1, value.getId(), reg, "https://api.bilibili.com/x/web-interface/card?mid=%s");
+            user1 = util.getBiliApi(user1, value.getId(), reg);
 
             // 判断用户是否为有效用户
             if (user1 != null) {
@@ -287,68 +285,45 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
         // 加上换行符后的弹幕内容
         ArrayList<String> newlineChar = new ArrayList<>();
 
-        // 获取redis中弹幕文件的cid
-        Object bCharFileNameList = redisUtil.get(bv);
-
-        // 与bv号对应的cid
+        // cid
         String cid = "";
-
-
+        Object redisHasCid = redisUtil.get(bv);
         // 返回结果
-        HashMap<String, ArrayList<String>> regex = new HashMap<>(16);
+        HashMap<String, ArrayList<String>> res = new HashMap<>(16);
         // 获取弹幕数据
         try {
-            cid = util.regex(util.request("https://api.bilibili.com/x/player/pagelist?bvid=%s&jsonp=jsonp", bv),
-                    "[\\w+|\\W+]\"cid\":(\\d+),\"page\":[\\w+|\\W+]");
+            cid = getCid(bv, redisHasCid);
 
-            // 弹幕内容保存路径
-            String path = String.format("hdd//data//biliChar//%s.xml", cid);
-            File file = new File(path);
 
-            // 通过查询redis中存储的数据判断是否已有该BV号的弹幕文件
-            if (bCharFileNameList == null) {
-                newlineChar = util.request("https://api.bilibili.com/x/v1/dm/list.so?oid=%s", cid, "</d>", true);
-
-                bCharFileNameList = cid;
-
-                // 将弹幕文件保存到服务器硬盘
-                for (String s : newlineChar) {
-                    FileUtils.writeStringToFile(file, s, "UTF-8", true);
-                }
-            } else {
-                // 若存在则直接读取本地文件
-                LineIterator it = FileUtils.lineIterator(file, "UTF-8");
-                while (it.hasNext()) {
-                    newlineChar.add(it.nextLine());
-                }
-                it.close();
-            }
+            util.getChars(cid, newlineChar, cid);
 
             // 创建目标值的HashMap
             HashMap<String, String> target = new HashMap<>(1);
             // 将查询条件赋值
             target.put("bChar", bChar);
-            target.put("timeline", timeline);
-
-            // 正则表达式
-            String reg = "<d p=\"([\\d.\\d|\\d]{1,}),\\d,\\d{1,2},\\d{1,8},(\\d{1,11}),\\d,(\\w{1,10}),\\d{1,20},\\d{1,2}\">([\\W|\\w]{1,100})</d>";
+            if (timeline != null) {
+                target.put("timeline", timeline);
+            }
 
             // 调用获取结果的方法
-            regex = util.regex(newlineChar, reg, target);
-            if (regex == null || regex.size() == 0) {
+            res = util.regex(newlineChar, target);
+            if (res == null || res.size() == 0) {
                 target.remove("timeline");
-                regex = util.regex(newlineChar, reg, target);
+                res = util.regex(newlineChar, target);
             } else {
-                for (Map.Entry<String, ArrayList<String>> next : regex.entrySet()) {
+                for (Map.Entry<String, ArrayList<String>> next : res.entrySet()) {
+
                     String key = next.getKey();
-                    if (key.equals("结果超过8次请输入弹幕所在时间用于详细确认")) {
+                    if ("结果超过8次请输入弹幕所在时间用于详细确认".equals(key)) {
                         continue;
                     }
                     // 将该用户的userid添加到该 key 的 value 中
                     User user = getUser(new User(key), request);
                     ArrayList<String> value = next.getValue();
-                    value.add(String.valueOf(user.getId()));
-                    value.add(user.getName());
+                    if (user != null) {
+                        value.add(String.valueOf(user.getId()));
+                        value.add(user.getName());
+                    }
                     next.setValue(value);
                 }
             }
@@ -358,13 +333,65 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
             log.warn("获取弹幕数据过程中出错:\t" + e);
         } finally {
             // 将弹幕文件信息存储到redis中 并设定过期时间为7天过期
-            boolean flag = redisUtil.set(bv, bCharFileNameList, 604800);
+            boolean flag = redisUtil.set(bv, cid, 604800);
             if (!flag) {
                 log.warn("数据存入redis失败：" + cid);
             }
 
         }
+        return res;
+    }
 
-        return regex;
+    @Override
+    public HashMap<String, ArrayList<String>> getCharForUser(String bv, User user, HttpServletRequest request) {
+
+        if (user.getHex() == null && user.getId() != null) {
+            user = util.getHex(user);
+        }
+
+        // 获取redis中弹幕文件的cid
+        Object redisHasCid = redisUtil.get(bv);
+        // cid
+        String cid;
+        // 加上换行符后的弹幕内容
+        ArrayList<String> newlineChar = new ArrayList<>();
+        // 返回结果
+        HashMap<String, ArrayList<String>> res = new HashMap<>(16);
+
+        try {
+            // 获取cid
+            cid = getCid(bv, redisHasCid);
+            // 将数据写入本地文件或从本地文件读取数据
+            util.getChars(redisHasCid, newlineChar, cid);
+
+            HashMap<String, String> target = new HashMap<>();
+            target.put("userKey", user.getHex());
+            res = util.regex(newlineChar, target);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return res;
+    }
+
+    /**
+     * 获取Cid
+     *
+     * @param bv bv号
+     * @return cid
+     * @throws IOException IO异常
+     */
+    public String getCid(String bv, Object redisHasCid) throws IOException {
+        String cid;
+
+        if (redisHasCid == null) {
+            cid = util.regex(util.request("https://api.bilibili.com/x/player/pagelist?bvid=%s&jsonp=jsonp", bv),
+                    "[\\w+|\\W+]\"cid\":(\\d+),\"page\":[\\w+|\\W+]");
+        } else {
+            cid = (String) redisHasCid;
+        }
+
+        return cid;
     }
 }

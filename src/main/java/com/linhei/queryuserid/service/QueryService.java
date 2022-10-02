@@ -111,4 +111,16 @@ public interface QueryService extends IService<User> {
      * @return 查询出的结果
      */
     HashMap<String, ArrayList<String>> getUserChar(String bv, String bChar, String timeline, HttpServletRequest request);
+
+
+    /**
+     * 根据用户和bv号查询该用户在此投稿发送的弹幕
+     *
+     * @param bv      bv号
+     * @param user    用户
+     * @param request 请求
+     * @return 查询结果
+     */
+    HashMap<String, ArrayList<String>> getCharForUser(String bv, User user, HttpServletRequest request);
+
 }

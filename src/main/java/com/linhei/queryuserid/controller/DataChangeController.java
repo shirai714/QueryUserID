@@ -130,9 +130,9 @@ public class DataChangeController {
         keyValue = RandomStringUtils.randomAlphanumeric(8);
         // 将key加入redis中  用于校验
         String key = "key";
-//        redisUtil.set(key, keyValue);
+        redisUtil.set(key, keyValue);
         // 设置键为"key"的过期时间为8小时
-//        redisUtil.expire(key, 28800L);
+        redisUtil.expire(key, 28800L);
     }
 
 }

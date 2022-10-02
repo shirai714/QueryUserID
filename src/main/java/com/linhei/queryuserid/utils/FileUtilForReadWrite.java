@@ -250,8 +250,8 @@ public class FileUtilForReadWrite {
     /**
      * 文件数据写入（如果文件夹和文件不存在，则先创建，再写入）
      *
-     * @param filePath
-     * @param content
+     * @param filePath 文件路径
+     * @param content  写入内容
      * @param flag     true:如果文件存在且存在内容，则内容换行追加；false:如果文件存在且存在内容，则内容替换
      */
     public static String fileLinesWrite(String filePath, String content, boolean flag) {

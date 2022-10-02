@@ -2,6 +2,7 @@ package com.linhei.queryuserid.controller;
 
 import com.linhei.queryuserid.service.OtherService;
 import com.linhei.queryuserid.utils.FileUtilForReadWrite;
+import com.linhei.queryuserid.utils.RedisUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
@@ -30,7 +31,8 @@ public class LogAndSignController {
 
     @Autowired
     OtherService otherService;
-
+    @Autowired
+    RedisUtil redisUtil;
 
     /**
      * 查看日志
@@ -65,10 +67,16 @@ public class LogAndSignController {
     @Scheduled(cron = "0 0 8 * * ?") // 设置定时任务注解 每过一天执行一次
     private void signIn() {
         // 255sign
-        String cookie255 = getString("opt//javaApps//cookie//255");
-        String authorization = getString("opt//javaApps//cookie//255Authorization");
-        String result255 = otherService.requestLink("https://2550505.com/sign", cookie255, authorization);
-        String day255 = otherService.requestLink("https://2550505.com/sign/days", cookie255, null);
+        String url255 = "https://2550505.com/sign";
+        String token255 = String.valueOf(redisUtil.get("token"));
+        String authorization = String.valueOf(redisUtil.get("authorization"));
+        String result255 = otherService.requestLink(url255, token255, authorization);
+        // 若登录失效则调用登录方法
+        String s = "用户未登陆或登陆已过期,请登录后再试";
+        if (result255.contains(s)) {
+            otherService.register(url255, authorization);
+        }
+        String day255 = otherService.requestLink("https://2550505.com/sign/days", token255, null);
         FileUtilForReadWrite.fileLinesWrite("opt//javaApps//log//255sign.txt", "day:" + day255 + "\tresult:" + result255
                 , true);
         // biliSign

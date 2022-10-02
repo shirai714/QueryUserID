@@ -84,6 +84,7 @@ public class QueryUIDController {
      * @param bv       BV号
      * @param bChar    弹幕
      * @param timeline 弹幕的发送时间
+     * @param request  请求
      * @return 查询出的结果
      */
     @ResponseBody
@@ -92,5 +93,18 @@ public class QueryUIDController {
         return queryService.getUserChar(bv, bChar, timeline, request);
     }
 
+    /**
+     * 根据用户和bv号查询该用户在此投稿发送的弹幕
+     *
+     * @param bv      bv号
+     * @param user    用户
+     * @param request 请求
+     * @return 查询结果
+     */
+    @ResponseBody
+    @RequestMapping(value = "/getCharForUser", method = RequestMethod.GET)
+    public HashMap<String, ArrayList<String>> getCharForUser(String bv, User user, HttpServletRequest request) {
+        return queryService.getCharForUser(bv, user, request);
+    }
 }
 

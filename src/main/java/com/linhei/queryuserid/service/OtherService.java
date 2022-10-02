@@ -28,4 +28,13 @@ public interface OtherService {
      * @return 过滤后的HashMap
      */
     HashMap<String, ArrayList<String>> getUserData(ArrayList<String> textList, String reg, HashMap<String, String> target);
+
+
+    /**
+     * 登录方法
+     *
+     * @param url255        链接
+     * @param authorization 令牌
+     */
+    void register(String url255, String authorization);
 }

@@ -3,15 +3,15 @@ package com.linhei.queryuserid.utils;
 import com.linhei.queryuserid.entity.User;
 import com.linhei.queryuserid.service.QueryService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.LineIterator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
 
 import javax.servlet.http.HttpServletRequest;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.MalformedURLException;
+import java.io.*;
+import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -27,6 +27,7 @@ import java.util.zip.InflaterInputStream;
  * @author linhei
  */
 @Slf4j
+@Configuration
 public class Util {
 
     @Autowired
@@ -37,9 +38,25 @@ public class Util {
      *
      * @param user 需要查询的信息
      * @param id   用户id
+     * @param reg  正则
+     * @return 查询结果 若用户不存在则从数据库中删除该用户
+     */
+    public User getBiliApi(User user, Object id, String reg) {
+        return getBiliApi(user, id, reg, null);
+    }
+
+    /**
+     * 爬取BiliBli的API的方法
+     *
+     * @param user    需要查询的信息
+     * @param id      用户id
+     * @param reg     正则
+     * @param textUrl 链接
      * @return 查询结果 若用户不存在则从数据库中删除该用户
      */
     public User getBiliApi(User user, Object id, String reg, String textUrl) {
+
+        if (textUrl == null) textUrl = "https://api.bilibili.com/x/web-interface/card?mid=%s";
 
         String regex = "[\\W|\\w]+<title>([\\w|\\W]{1,16})的个人空间_哔哩哔哩_Bili";
         String userName;
@@ -199,6 +216,57 @@ public class Util {
     }
 
     /**
+     * 登录请求方法
+     *
+     * @param url           链接
+     * @param post          POST内容
+     * @param authorization 密钥
+     * @return 返回参数
+     * @throws IOException IOException
+     */
+
+    public String register(String url, String post, String authorization) throws IOException {
+        BufferedReader bufIn;
+        URL url1 =
+                new URL(null, url);
+
+
+        // 打开链接
+        HttpURLConnection urlConnection = (HttpURLConnection) url1.openConnection();
+        // 使用允许输入操作
+        urlConnection.setDoInput(Boolean.TRUE);
+        urlConnection.setDoOutput(Boolean.TRUE);
+
+        //使用POST方法
+        urlConnection.setRequestMethod("POST");
+        // 禁用缓存
+        urlConnection.setUseCaches(false);
+
+
+        // 设置请求头
+        setRequestProperty(urlConnection);
+        urlConnection.addRequestProperty("authorization", authorization);
+        urlConnection.addRequestProperty("origin", "https://2550505.com");
+        urlConnection.addRequestProperty("content-type", "application/json");
+
+        urlConnection.setInstanceFollowRedirects(false);
+        urlConnection.connect();
+
+        OutputStream outputStream = urlConnection.getOutputStream();
+        outputStream.write(post.getBytes());
+        outputStream.flush();
+        outputStream.close();
+
+        InputStream inputStream = urlConnection.getInputStream();
+        InputStreamReader inputStreamReader = new InputStreamReader(inputStream, "UTF-8");
+
+        bufIn = new BufferedReader(inputStreamReader);
+
+
+        return bufferedReaderToString(bufIn);
+    }
+
+    /**
      * 主请求方法
      *
      * @param url 链接
@@ -212,13 +280,9 @@ public class Util {
         BufferedReader bufIn;
         URL url1 = new URL(null, String.format(url, id));
         // 打开链接
-        URLConnection urlConnection = url1.openConnection();
+        HttpURLConnection urlConnection = (HttpURLConnection) url1.openConnection();
 
-        // 设置请求头
-        urlConnection.setRequestProperty("User-Agent",
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.60 Safari/537.36");
-        urlConnection.addRequestProperty("Referrer-Policy", "strict-origin-when-cross-origin");
-        urlConnection.addRequestProperty("accept-language", "zh-CN,zh;q=0.9,en;q=0.8");
+        setRequestProperty(urlConnection);
 
         // 判断是否为签到用request
         if (null != cookie) {
@@ -237,16 +301,32 @@ public class Util {
             bufIn = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
         }
 
+
+        return bufferedReaderToString(bufIn);
+    }
+
+    public String bufferedReaderToString(BufferedReader bufIn) throws IOException {
         StringBuilder sb = new StringBuilder();
         String s;
 
         while ((s = bufIn.readLine()) != null) {
             sb.append(s);
         }
-
         return sb.toString();
     }
 
+    /**
+     * 设置请求头属性
+     *
+     * @param urlConnection 连接
+     */
+    public void setRequestProperty(HttpURLConnection urlConnection) {
+        // 设置请求头
+        urlConnection.setRequestProperty("User-Agent",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.60 Safari/537.36");
+        urlConnection.addRequestProperty("Referrer-Policy", "strict-origin-when-cross-origin");
+        urlConnection.addRequestProperty("accept-language", "zh-CN,zh;q=0.9,en;q=0.8");
+    }
 
     /**
      * 不带目标且返回批量数据的regex方法
@@ -261,16 +341,42 @@ public class Util {
     }
 
     /**
+     * 不带target的regex方法
+     *
+     * @param textList 源文件列表
+     * @return 过滤后的hashmap
+     */
+    public HashMap<String, ArrayList<String>> regex(ArrayList<String> textList) {
+        return regex(textList, (HashMap<String, String>) null);
+    }
+
+    /**
+     * 带目标且返回批量数据的regex方法
+     *
+     * @param textList 源文件列表
+     * @param target   目标值
+     * @return 过滤后的HashMap
+     */
+    public HashMap<String, ArrayList<String>> regex(ArrayList<String> textList, HashMap<String, String> target) {
+        // 正则表达式
+        String reg = "<d p=\"([\\d.\\d|\\d]{1,}),\\d,\\d{1,2},\\d{1,8},(\\d{1,11}),\\d,(\\w{1,10}),\\d{1,20},\\d{1,2}\">([\\W|\\w]{1,100})</d>";
+        return regex(textList, reg, target, null);
+    }
+
+
+    /**
      * 带目标且返回批量数据的regex方法
      *
      * @param textList 源文件列表
      * @param reg      正则表达式
-     * @param target   目标值
+     *                 //     * @param target   目标值
      * @return 过滤后的HashMap
      */
     public HashMap<String, ArrayList<String>> regex(ArrayList<String> textList, String reg, HashMap<String, String> target) {
-        return regex(textList, reg, target, null);
+        return regex(textList, reg, null, null);
     }
+
+    int tem = 0;
 
     /**
      * 带目标且返回批量数据的regex方法
@@ -282,16 +388,27 @@ public class Util {
      * @return 过滤后的HashMap
      */
     public HashMap<String, ArrayList<String>> regex(ArrayList<String> textList, String reg, HashMap<String, String> target, HttpServletRequest request) {
+        int temp = 0;
 
+        // 判断是否target是否为空
+        if (target != null && target.containsKey("bChar") && !target.containsKey("timeline")) {
+            temp = 1;
+        } else if (target != null && target.containsKey("timeline")) {
+            temp = 2;
+        } else if (target != null && target.containsKey("userKey")) {
+            temp = 3;
+        }
 
         // 默认返回对象 hashmap最大容量为8
         HashMap<String, ArrayList<String>> res = new HashMap<>(8);
 
-        int tem = 0;
+        this.tem = 0;
         // 遍历
         for (int i = 1; i < textList.size(); i++) {
+
             // 使用regex过滤
             Matcher matcher = Pattern.compile(reg).matcher(textList.get(i));
+
             if (matcher.find()) {
                 ArrayList<String> list = new ArrayList<>();
                 // 获取组1的数据  视频中的时间
@@ -307,74 +424,77 @@ public class Util {
                 // 获取组4的数据  弹幕
                 String bChar = matcher.group(4);
                 list.add(bChar);
-                User user = null;
-                if (request != null) {
-                    try {
-                        System.out.println(userKey);
-                        user = queryService.getUser(new User(userKey), request);
-                        System.out.println(user);
 
-                    } catch (MalformedURLException e) {
-                        log.warn("获取用户信息时出现错误：" + e.getCause());
-                    }
-                    userKey = String.valueOf(user.getId());
-                }
-                // 判断是否有查询目标
-                if (target != null) {
-                    String targetTimeline;
-                    // 获取查询目标的弹幕
-                    String bCharTarget = target.get("bChar");
 
-                    // 若查询目标传入的弹幕存在于获取的弹幕中或与其相等
-                    boolean flag = bChar.equals(bCharTarget) || bChar.contains(bCharTarget);
-                    // 判断是否有发送时间条件 若有为其赋值
-                    if ((targetTimeline = target.get("timeline")) != null) {
+                String targetTimeline;
+                // 获取查询目标的弹幕
+                boolean flag;
+                // 目标char值
+                String bCharTarget;
 
-                        double targetTimelineDouble = Double.parseDouble(targetTimeline);
-                        double timelineDouble = Double.parseDouble(timeline);
-                        // 若查询目标传入的弹幕存在于获取的弹幕中或与其相等 且 查询目标和获取的弹幕在视频中的时间相差±3秒
-                        boolean b = flag && (Math.max(timelineDouble, targetTimelineDouble) - Math.min(timelineDouble, targetTimelineDouble) <= 3);
-                        if (b) {
-                            // 符合上述条件直接返回本次的循环的数据
-                            HashMap<String, ArrayList<String>> temp = new HashMap<>(textList.size());
-                            if (user != null) list.add(user.getName());
-                            temp.put(userKey, list);
-                            return temp;
-                        }
-                    } else {
+                switch (temp) {
+                    case 1:
+                        // 若查询目标传入的弹幕存在于获取的弹幕中或与其相等
+                        bCharTarget = target.get("bChar");
+                        flag = bChar.equals(bCharTarget) || bChar.contains(bCharTarget);
                         if (flag) {
-                            if (res.containsKey(userKey)) {
-                                ArrayList<String> strings = res.get(userKey);
-                                strings.addAll(list);
-                                if (user != null) strings.add(user.getName());
-                                res.put(userKey, strings);
-
-                            } else {
-                                if (user != null) list.add(user.getName());
-                                res.put(userKey, list);
-                                tem++;
-                                if (tem > 7) {
-                                    res.put("结果超过8次请输入弹幕所在时间用于详细确认", null);
-                                    break;
-                                }
+                            res = canAddMap(res, list, userKey);
+                            if (this.tem > 7) {
+                                res.put("结果超过8次请输入弹幕所在时间用于详细确认", null);
+                                break;
                             }
                         }
-                    }
-                } else {
-                    // 若没有目标则判断userID是否存在hashmap中 若存在则将本次匹配的结果加入相符的userID中
-                    if (res.containsKey(userKey)) {
-                        ArrayList<String> strings = res.get(userKey);
-                        strings.addAll(list);
-                        if (user != null) strings.add(user.getName());
-                        res.put(userKey, strings);
-
-                    } else {
-                        // 否则直接以userID为key加入hashmap中
-                        if (user != null) list.add(user.getName());
-                        res.put(userKey, list);
-                    }
+                        continue;
+                    case 2:
+                        // 为发送时间赋值
+                        targetTimeline = target.get("timeline");
+                        // 为目标复制
+                        bCharTarget = target.get("bChar");
+                        double targetTimelineDouble = Double.parseDouble(targetTimeline);
+                        double timelineDouble = Double.parseDouble(timeline);
+                        flag = bChar.equals(bCharTarget) || bChar.contains(bCharTarget);
+                        // 若查询目标传入的弹幕存在于获取的弹幕中或与其相等 且 查询目标和获取的弹幕在视频中的时间相差±1秒
+                        boolean b = flag && (Math.max(timelineDouble, targetTimelineDouble) - Math.min(timelineDouble, targetTimelineDouble) <= 1);
+                        if (b) {
+                            res = canAddMap(res, list, userKey);
+                        }
+                        continue;
+                    case 3:
+                        String user = target.get("userKey");
+                        if (userKey.equals(user)) res = canAddMap(res, list, userKey);
+                        continue;
+                    default:
+                        res = canAddMap(res, list, userKey);
                 }
+
+
             }
+
+        }
+        return res;
+    }
+
+    /**
+     * 判断能否将结果加入map
+     *
+     * @param res     返回值
+     * @param list    本次循环的相关信息
+     * @param userKey 用户的主键
+     * @return res
+     */
+    HashMap<String, ArrayList<String>> canAddMap
+    (HashMap<String, ArrayList<String>> res, ArrayList<String> list, String userKey) {
+
+        // 若没有目标则判断userID是否存在hashmap中 若存在则将本次匹配的结果加入相符的userID中
+        if (res.containsKey(userKey)) {
+            ArrayList<String> strings = res.get(userKey);
+            strings.addAll(list);
+            res.put(userKey, strings);
+
+        } else {
+            // 否则直接以userID为key加入hashmap中
+            res.put(userKey, list);
+            tem++;
 
         }
         return res;
@@ -396,6 +516,12 @@ public class Util {
         return null;
     }
 
+    /**
+     * 将时间戳转换为时间
+     *
+     * @param timestamp 时间戳
+     * @return 时间
+     */
     public String timestampToDate(long timestamp) {
 
         timestamp *= 1000;
@@ -405,6 +531,42 @@ public class Util {
         date.setTime(timestamp);
         // 返回结果
         return simpleDateFormat.format(date);
+
+    }
+
+
+    /**
+     * 弹幕文件保存到本地
+     *
+     * @param redisHasCid cid用于判断Redis中是否已已存在
+     * @param newlineChar 处理后的弹幕文件
+     * @param cid         cid
+     * @throws IOException IOException
+     */
+    public void getChars(Object redisHasCid, ArrayList<String> newlineChar, String cid) throws IOException {
+
+        // 弹幕内容保存路径
+        String path = String.format("hdd//data//biliChar//%s.xml", cid);
+        File file = new File(path);
+
+        // 通过查询redis中存储的数据判断是否已有该BV号的弹幕文件
+        if (redisHasCid == null) {
+            newlineChar = request("https://api.bilibili.com/x/v1/dm/list.so?oid=%s", cid, "</d>", true);
+
+
+            // 将弹幕文件保存到服务器硬盘
+            for (int i = 0; i < newlineChar.size(); i++) {
+                FileUtils.writeStringToFile(file, newlineChar.get(i), "UTF-8", i != 0);
+            }
+
+        } else {
+            // 若存在则直接读取本地文件
+            LineIterator it = FileUtils.lineIterator(file, "UTF-8");
+            while (it.hasNext()) {
+                newlineChar.add(it.nextLine());
+            }
+            it.close();
+        }
 
     }
 }
