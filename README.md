@@ -24,6 +24,9 @@
 /user/getUserForChar 通过get请求方法实现通过弹幕查询用户信息
 需要传入参数:bv号,bChar弹幕内容,timeline弹幕发送时间
 
+/user/getCharForUser 通过get请求方法实现通过用户查询其对该稿件发送的所有弹幕
+需要传入参数:bv号,User(uid或hex)
+
 IpUtil类作者：
 /**
  * @Author: make mpy
