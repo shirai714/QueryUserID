@@ -295,7 +295,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
             cid = getCid(bv, redisHasCid);
 
 
-            util.getChars(cid, newlineChar, cid);
+            util.getChars(redisHasCid, newlineChar, cid);
 
             // 创建目标值的HashMap
             HashMap<String, String> target = new HashMap<>(1);

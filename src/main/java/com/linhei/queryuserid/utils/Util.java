@@ -546,8 +546,7 @@ public class Util {
     public void getChars(Object redisHasCid, ArrayList<String> newlineChar, String cid) throws IOException {
 
         // 弹幕内容保存路径
-        String path = String.format("hdd//data//biliChar//%s.xml", cid);
-        File file = new File(path);
+        File file = new File(String.format("hdd//data//biliChar//%s.xml", cid));
 
         // 通过查询redis中存储的数据判断是否已有该BV号的弹幕文件
         if (redisHasCid == null) {
