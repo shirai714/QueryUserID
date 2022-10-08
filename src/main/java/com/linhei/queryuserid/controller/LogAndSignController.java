@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
 import java.util.regex.Matcher;
@@ -63,7 +64,7 @@ public class LogAndSignController {
     /**
      * 调用签到方法
      */
-//    @PostConstruct // 项目启动后执行注解
+    @PostConstruct // 项目启动后执行注解
     @Scheduled(cron = "0 0 8 * * ?") // 设置定时任务注解 每过一天执行一次
     private void signIn() {
         // 255sign
@@ -89,10 +90,10 @@ public class LogAndSignController {
     /**
      * 每月执行补签
      */
-    @Scheduled(cron = "0 0 8 1 * ?")//定时任务注解 每月1号执行
+    @Scheduled(cron = "0 0 8 1 * ?") //定时任务注解 每月1号执行
     private void signFill() {
 
-        String cookie255 = getString("opt//javaApps//cookie//255");
+        String cookie255 = String.valueOf(redisUtil.get("token"));
         String authorization = getString("opt//javaApps//cookie//255Authorization");
         final String reg = "\"code\":\\d+,\"count\":(\\d+)";
         Matcher matcher = Pattern.compile(reg).matcher(otherService.requestLink("https://2550505.com/sign/card", cookie255, authorization));

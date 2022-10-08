@@ -1,5 +1,7 @@
 package com.linhei.queryuserid.service.impl;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 import com.linhei.queryuserid.service.OtherService;
 import com.linhei.queryuserid.utils.FileUtilForReadWrite;
 import com.linhei.queryuserid.utils.RedisUtil;
@@ -9,8 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Map;
 
 
 /**
@@ -46,22 +47,24 @@ public class OtherServiceImpl implements OtherService {
         return res;
     }
 
-    @Override
-    public HashMap<String, ArrayList<String>> getUserData(ArrayList<String> textList, String reg, HashMap<String, String> target) {
-//        return util.regex(textList, reg, target);
-        return null;
-    }
 
     @Override
     public void register(String url, String authorization) {
-        String post = "{\"password\":\"Lin123456!\", \"account\":\"10028\"}";
+        JSONObject post = new JSONObject();
+        post.put("password", redisUtil.get("password"));
+        post.put("account", redisUtil.get("account"));
         try {
             // 执行登录方法
-            String register = util.register(url, post, authorization);
-            // 获取token的正则
-            String token = util.regex(register, "\"code\":\\d,\"token\":\"(\\w+)\",\"uid\":\\d+");
-            // 去除所有空格
-            token = token.replace(" ", "");
+            String register = util.register("https://2550505.com/auth/login", post, authorization);
+            if (register.contains("<!DOCTYPE html><html lang=\"\"><head><meta charset=\"utf-8\">")) return;
+
+            // 将Json转为map
+            Map<String, String> parse = (Map<String, String>) JSON.parse(register);
+            // 获取token
+            String token = parse.get("token");
+
+            // 去除token的所有空格
+            token = "token=" + token.replace(" ", "");
             // 将redis中的token更新
             redisUtil.set("token", token);
             // 执行签到方法

@@ -1,15 +1,24 @@
 package com.linhei.queryuserid.utils;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 import com.linhei.queryuserid.entity.User;
 import com.linhei.queryuserid.service.QueryService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
 import javax.servlet.http.HttpServletRequest;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -27,11 +36,13 @@ import java.util.zip.InflaterInputStream;
  * @author linhei
  */
 @Slf4j
-@Configuration
+@Component
 public class Util {
 
     @Autowired
-    QueryService queryService;
+    private QueryService queryService;
+
+    private final RestTemplate restTemplate = new RestTemplate();
 
     /**
      * 爬取BiliBli的API的方法
@@ -224,46 +235,26 @@ public class Util {
      * @return 返回参数
      * @throws IOException IOException
      */
+    public String register(String url, JSONObject post, String authorization) throws IOException {
 
-    public String register(String url, String post, String authorization) throws IOException {
-        BufferedReader bufIn;
-        URL url1 =
-                new URL(null, url);
-
-
-        // 打开链接
-        HttpURLConnection urlConnection = (HttpURLConnection) url1.openConnection();
-        // 使用允许输入操作
-        urlConnection.setDoInput(Boolean.TRUE);
-        urlConnection.setDoOutput(Boolean.TRUE);
-
-        //使用POST方法
-        urlConnection.setRequestMethod("POST");
-        // 禁用缓存
-        urlConnection.setUseCaches(false);
-
-
+        // 请求头
+        HttpHeaders headers = new HttpHeaders();
+        // 设定请求字符集 指定返回类型
+        headers.setContentType(MediaType.parseMediaType("application/json; charset=UTF-8"));
         // 设置请求头
-        setRequestProperty(urlConnection);
-        urlConnection.addRequestProperty("authorization", authorization);
-        urlConnection.addRequestProperty("origin", "https://2550505.com");
-        urlConnection.addRequestProperty("content-type", "application/json");
+        headers.add("Accept", MediaType.APPLICATION_JSON.toString());
+        headers.add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.60 Safari/537.36");
+        headers.add("Referrer-Policy", "strict-origin-when-cross-origin");
+        headers.add("accept-language", "zh-CN,zh;q=0.9,en;q=0.8");
+        headers.add("origin", "https://2550505.com");
+        headers.add("referer", "https://2550505.com/login");
+        headers.add("content-type", "application/json");
+        headers.add("authorization", authorization);
 
-        urlConnection.setInstanceFollowRedirects(false);
-        urlConnection.connect();
-
-        OutputStream outputStream = urlConnection.getOutputStream();
-        outputStream.write(post.getBytes());
-        outputStream.flush();
-        outputStream.close();
-
-        InputStream inputStream = urlConnection.getInputStream();
-        InputStreamReader inputStreamReader = new InputStreamReader(inputStream, "UTF-8");
-
-        bufIn = new BufferedReader(inputStreamReader);
-
-
-        return bufferedReaderToString(bufIn);
+        // 请求实体
+        HttpEntity<String> formEntity = new HttpEntity<>(JSON.toJSONString(post), headers);
+        // 使用restTemplate发送POST请求
+        return restTemplate.postForObject(url, formEntity, String.class);
     }
 
     /**
