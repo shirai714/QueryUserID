@@ -2,6 +2,7 @@ package com.linhei.queryuserid.utils;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
+import com.linhei.queryuserid.entity.CharEntity;
 import com.linhei.queryuserid.entity.User;
 import com.linhei.queryuserid.service.QueryService;
 import lombok.extern.slf4j.Slf4j;
@@ -110,15 +111,29 @@ public class Util {
         // 去除空字符
         user.setHex(getHex.trim());
         user.setTableName(getUserTableName(user.getHex()));
+        user.setUpdateTime(dateFormat(new Date()));
+
+        return user;
+    }
+
+    /**
+     * 格式化时间
+     *
+     * @param date date
+     * @return date
+     */
+    public Date dateFormat(Date date) {
+        Date parse = null;
         try {
             // 将日期格式化为 yyyy-MM-dd HH:mm:ss
             SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            String dateString = simpleDateFormat.format(new Date());
-            user.setUpdateTime(simpleDateFormat.parse(dateString));
+            String dateString = simpleDateFormat.format(date);
+            parse = simpleDateFormat.parse(dateString);
+
         } catch (ParseException e) {
             log.warn("日期转换失败：", e);
         }
-        return user;
+        return parse;
     }
 
     /**
@@ -334,7 +349,7 @@ public class Util {
      * @param reg      正则表达式
      * @return 过滤后的HashMap
      */
-    public HashMap<String, ArrayList<String>> regex(ArrayList<String> textList, String reg) {
+    public ArrayList<CharEntity> regex(ArrayList<String> textList, String reg) {
 
         return regex(textList, reg, null);
     }
@@ -345,7 +360,7 @@ public class Util {
      * @param textList 源文件列表
      * @return 过滤后的hashmap
      */
-    public HashMap<String, ArrayList<String>> regex(ArrayList<String> textList) {
+    public ArrayList<CharEntity> regex(ArrayList<String> textList) {
         return regex(textList, (HashMap<String, String>) null);
     }
 
@@ -356,7 +371,7 @@ public class Util {
      * @param target   目标值
      * @return 过滤后的HashMap
      */
-    public HashMap<String, ArrayList<String>> regex(ArrayList<String> textList, HashMap<String, String> target) {
+    public ArrayList<CharEntity> regex(ArrayList<String> textList, HashMap<String, String> target) {
         // 正则表达式
         String reg = "<d p=\"([\\d.\\d|\\d]{1,}),\\d,\\d{1,2},\\d{1,8},(\\d{1,11}),\\d,(\\w{1,10}),\\d{1,20},\\d{1,2}\">([\\W|\\w]{1,100})</d>";
         return regex(textList, reg, target, null);
@@ -371,7 +386,7 @@ public class Util {
      *                 //     * @param target   目标值
      * @return 过滤后的HashMap
      */
-    public HashMap<String, ArrayList<String>> regex(ArrayList<String> textList, String reg, HashMap<String, String> target) {
+    public ArrayList<CharEntity> regex(ArrayList<String> textList, String reg, HashMap<String, String> target) {
         return regex(textList, reg, null, null);
     }
 
@@ -386,7 +401,7 @@ public class Util {
      * @param request  请求
      * @return 过滤后的HashMap
      */
-    public HashMap<String, ArrayList<String>> regex(ArrayList<String> textList, String reg, HashMap<String, String> target, HttpServletRequest request) {
+    public ArrayList<CharEntity> regex(ArrayList<String> textList, String reg, HashMap<String, String> target, HttpServletRequest request) {
         int temp = 0;
 
         // 判断是否target是否为空
@@ -402,11 +417,15 @@ public class Util {
         HashMap<String, ArrayList<String>> res = new HashMap<>(8);
 
         this.tem = 0;
+
+        ArrayList<CharEntity> charList = new ArrayList<>();
+        int id = 0;
         // 遍历
         for (int i = 1; i < textList.size(); i++) {
 
             // 使用regex过滤
             Matcher matcher = Pattern.compile(reg).matcher(textList.get(i));
+
 
             if (matcher.find()) {
                 ArrayList<String> list = new ArrayList<>();
@@ -416,10 +435,11 @@ public class Util {
                 // 获取组2的数据  时间戳
                 String timestamp = matcher.group(2);
                 // 调用时间戳转换方法
-                timestamp = timestampToDate(Long.parseLong(timestamp));
+
+                Date timestamp2 = timestampToDate(Long.parseLong(timestamp));
                 // 获取组3的数据  用户id
                 String userKey = matcher.group(3);
-                list.add(timestamp);
+                list.add(String.valueOf(timestamp2));
                 // 获取组4的数据  弹幕
                 String bChar = matcher.group(4);
                 list.add(bChar);
@@ -437,11 +457,10 @@ public class Util {
                         bCharTarget = target.get("bChar");
                         flag = bChar.equals(bCharTarget) || bChar.contains(bCharTarget);
                         if (flag) {
-                            res = canAddMap(res, list, userKey);
-                            if (this.tem > 7) {
-                                res.put("结果超过8次请输入弹幕所在时间用于详细确认", null);
-                                break;
-                            }
+                            // 若符合条件则将其加入CharList中
+                            id++;
+                            charList.add(new CharEntity(id, userKey, timestamp2, bChar, timeline));
+
                         }
                         continue;
                     case 2:
@@ -455,48 +474,29 @@ public class Util {
                         // 若查询目标传入的弹幕存在于获取的弹幕中或与其相等 且 查询目标和获取的弹幕在视频中的时间相差±1秒
                         boolean b = flag && (Math.max(timelineDouble, targetTimelineDouble) - Math.min(timelineDouble, targetTimelineDouble) <= 1);
                         if (b) {
-                            res = canAddMap(res, list, userKey);
+                            // 若符合条件则将其加入CharList中
+                            id++;
+                            charList.add(new CharEntity(id, userKey, timestamp2, bChar, timeline));
                         }
                         continue;
                     case 3:
                         String user = target.get("userKey");
-                        if (userKey.equals(user)) res = canAddMap(res, list, userKey);
+                        if (userKey.equals(user)) {
+                            id++;
+                            charList.add(new CharEntity(id, userKey, timestamp2, bChar, timeline));
+                        }
+
                         continue;
                     default:
-                        res = canAddMap(res, list, userKey);
+                        id++;
+                        charList.add(new CharEntity(id, userKey, timestamp2, bChar, timeline));
                 }
 
 
             }
 
         }
-        return res;
-    }
-
-    /**
-     * 判断能否将结果加入map
-     *
-     * @param res     返回值
-     * @param list    本次循环的相关信息
-     * @param userKey 用户的主键
-     * @return res
-     */
-    HashMap<String, ArrayList<String>> canAddMap
-    (HashMap<String, ArrayList<String>> res, ArrayList<String> list, String userKey) {
-
-        // 若没有目标则判断userID是否存在hashmap中 若存在则将本次匹配的结果加入相符的userID中
-        if (res.containsKey(userKey)) {
-            ArrayList<String> strings = res.get(userKey);
-            strings.addAll(list);
-            res.put(userKey, strings);
-
-        } else {
-            // 否则直接以userID为key加入hashmap中
-            res.put(userKey, list);
-            tem++;
-
-        }
-        return res;
+        return charList;
     }
 
 
@@ -521,7 +521,7 @@ public class Util {
      * @param timestamp 时间戳
      * @return 时间
      */
-    public String timestampToDate(long timestamp) {
+    public Date timestampToDate(long timestamp) {
 
         timestamp *= 1000;
         // 格式化
@@ -529,7 +529,7 @@ public class Util {
         Date date = new Date();
         date.setTime(timestamp);
         // 返回结果
-        return simpleDateFormat.format(date);
+        return date;
 
     }
 

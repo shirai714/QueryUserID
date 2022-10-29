@@ -6,13 +6,13 @@
 package com.linhei.queryuserid.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.linhei.queryuserid.entity.CharEntity;
 import com.linhei.queryuserid.entity.User;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -111,7 +111,7 @@ public interface QueryService extends IService<User> {
      * @param request  请求
      * @return 查询出的结果
      */
-    HashMap<String, ArrayList<String>> getUserChar(String bv, String bChar, String timeline, HttpServletRequest request);
+    ArrayList<CharEntity> getUserForChar(String bv, String bChar, String timeline, HttpServletRequest request);
 
 
     /**
@@ -122,7 +122,7 @@ public interface QueryService extends IService<User> {
      * @param request 请求
      * @return 查询结果
      */
-    HashMap<String, ArrayList<String>> getCharForUser(String bv, User user, HttpServletRequest request);
+    ArrayList<CharEntity> getCharForUser(String bv, User user, HttpServletRequest request);
 
     /**
      * 获取导航栏标题

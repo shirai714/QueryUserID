@@ -1,6 +1,8 @@
 package com.linhei.queryuserid.service.impl;
 
+import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.linhei.queryuserid.entity.CharEntity;
 import com.linhei.queryuserid.entity.User;
 import com.linhei.queryuserid.mapper.UserMapper;
 import com.linhei.queryuserid.service.OtherService;
@@ -291,7 +293,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
      * @return 查询结果
      */
     @Override
-    public HashMap<String, ArrayList<String>> getUserChar(String bv, String bChar, String timeline, HttpServletRequest request) {
+    public ArrayList<CharEntity> getUserForChar(String bv, String bChar, String timeline, HttpServletRequest request) {
 
         // 加上换行符后的弹幕内容
         ArrayList<String> newlineChar = new ArrayList<>();
@@ -300,12 +302,10 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
         String cid = "";
         Object redisHasCid = redisUtil.get(bv);
         // 返回结果
-        HashMap<String, ArrayList<String>> res = new HashMap<>(16);
+        ArrayList<CharEntity> res = new ArrayList<>();
         // 获取弹幕数据
         try {
             cid = getCid(bv, redisHasCid);
-
-
             util.getChars(redisHasCid, newlineChar, cid);
 
             // 创建目标值的HashMap
@@ -322,25 +322,18 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
                 target.remove("timeline");
                 res = util.regex(newlineChar, target);
             } else {
-                for (Map.Entry<String, ArrayList<String>> next : res.entrySet()) {
-
-                    String key = next.getKey();
-                    if ("结果超过8次请输入弹幕所在时间用于详细确认".equals(key)) {
-                        continue;
+                for (CharEntity charEntity : res) {
+                    User user = new User(charEntity.getHex());
+                    List<User> users = queryUiD(user, request);
+                    try {
+                        charEntity.setUid(users.get(0).getId());
+                    } catch (Exception e) {
+                        log.error("数据库无该数据：" + charEntity);
                     }
-                    // 将该用户的userid添加到该 key 的 value 中
-                    User user = (User) getUser(new User(key), request);
-                    ArrayList<String> value = next.getValue();
-                    if (user != null) {
-                        value.add(String.valueOf(user.getId()));
-                        value.add(user.getName());
-                    }
-                    next.setValue(value);
                 }
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
             log.warn("获取弹幕数据过程中出错:\t" + e);
         } finally {
             // 将弹幕文件信息存储到redis中 并设定过期时间为7天过期
@@ -354,7 +347,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
     }
 
     @Override
-    public HashMap<String, ArrayList<String>> getCharForUser(String bv, User user, HttpServletRequest request) {
+    public ArrayList<CharEntity> getCharForUser(String bv, User user, HttpServletRequest request) {
 
         if (user.getHex() == null && user.getId() != null) {
             user = util.getHex(user);
@@ -367,7 +360,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
         // 加上换行符后的弹幕内容
         ArrayList<String> newlineChar = new ArrayList<>();
         // 返回结果
-        HashMap<String, ArrayList<String>> res = new HashMap<>(16);
+        ArrayList<CharEntity> res = new ArrayList<>();
 
         try {
             // 获取cid
@@ -378,6 +371,16 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
             HashMap<String, String> target = new HashMap<>();
             target.put("userKey", user.getHex());
             res = util.regex(newlineChar, target);
+            CharEntity charEntity = res.get(0);
+            try {
+                List<User> userList = getUser(new User(res.get(0).getHex()), request);
+                charEntity.setUid(userList.get(0).getId());
+                charEntity.setUsername(userList.get(0).getName());
+                res.set(0, charEntity);
+            } catch (Exception e) {
+                log.warn("数据库中无该数据：" + charEntity);
+            }
+
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -397,8 +400,11 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
         String cid;
 
         if (redisHasCid == null) {
-            cid = util.regex(util.request("https://api.bilibili.com/x/player/pagelist?bvid=%s&jsonp=jsonp", bv),
-                    "[\\w+|\\W+]\"cid\":(\\d+),\"page\":[\\w+|\\W+]");
+            String request = util.request("https://api.bilibili.com/x/player/pagelist?bvid=%s&jsonp=jsonp", bv);
+            Map<String, Object> parse = JSON.parseObject(request);
+            ArrayList<Object> data = (ArrayList<Object>) parse.get("data");
+            Map<String, Object> res = JSON.parseObject(String.valueOf(data.get(0)));
+            cid = String.valueOf(res.get("cid"));
         } else {
             cid = (String) redisHasCid;
         }
@@ -419,7 +425,6 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
         System.out.println(objects.get(0));
         return objects;
     }
-
 
 
 }

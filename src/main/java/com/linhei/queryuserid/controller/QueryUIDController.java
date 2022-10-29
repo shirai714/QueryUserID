@@ -87,7 +87,7 @@ public class QueryUIDController {
     @ResponseBody
     @RequestMapping(value = "/getUserForChar", method = RequestMethod.GET)
     public String getUserChar(String bv, String bChar, String timeline, HttpServletRequest request) {
-        return JSON.toJSONString(queryService.getUserChar(bv, bChar, timeline, request));
+        return JSON.toJSONString(queryService.getUserForChar(bv, bChar, timeline, request));
     }
 
     /**
