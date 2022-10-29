@@ -22,6 +22,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -109,7 +110,14 @@ public class Util {
         // 去除空字符
         user.setHex(getHex.trim());
         user.setTableName(getUserTableName(user.getHex()));
-        user.setUpdateTime(new Date());
+        try {
+            // 将日期格式化为 yyyy-MM-dd HH:mm:ss
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            String dateString = simpleDateFormat.format(new Date());
+            user.setUpdateTime(simpleDateFormat.parse(dateString));
+        } catch (ParseException e) {
+            log.warn("日期转换失败：", e);
+        }
         return user;
     }
 

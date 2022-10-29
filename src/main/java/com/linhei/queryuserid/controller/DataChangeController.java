@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 
 /**
@@ -122,7 +121,7 @@ public class DataChangeController {
      * @Scheduled(fixedDelay = 5000) // 设置定时任务注解 每五秒执行一次
      * @Scheduled(initialDelay = 1, fixedRate = 5) //第一次延迟1秒后执行，之后按fixedRate的规则每5秒执行一次
      */
-    @PostConstruct // 项目启动后执行注解
+//    @PostConstruct // 项目启动后执行注解
     @Scheduled(cron = "0 0 */8 * * ?") // 设置定时任务注解 每过8小时执行一次
     private void getKey() {
 

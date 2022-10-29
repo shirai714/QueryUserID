@@ -1,5 +1,6 @@
 package com.linhei.queryuserid.controller;
 
+import com.alibaba.fastjson2.JSON;
 import com.linhei.queryuserid.entity.User;
 import com.linhei.queryuserid.service.QueryService;
 import lombok.extern.slf4j.Slf4j;
@@ -9,13 +10,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 
 
 /**
@@ -42,8 +39,8 @@ public class QueryUIDController {
      */
     @ResponseBody
     @RequestMapping(value = "getUid", method = RequestMethod.GET)
-    public List<User> queryByHex(User user, HttpServletRequest request) throws IOException {
-        return queryService.queryUiD(user, request);
+    public String queryByHex(User user, HttpServletRequest request) throws IOException {
+        return JSON.toJSONString(queryService.queryUiD(user, request));
     }
 
     /**
@@ -58,8 +55,8 @@ public class QueryUIDController {
      */
     @RequestMapping(value = "/list", method = RequestMethod.GET)
     @ResponseBody
-    public List<User> list(String tableName, String start, String length, HttpServletRequest request) throws IOException {
-        return queryService.queryUserList(tableName, start, length, request);
+    public String list(String tableName, String start, String length, HttpServletRequest request) throws IOException {
+        return JSON.toJSONString(queryService.queryUserList(tableName, start, length, request));
     }
 
 
@@ -73,8 +70,8 @@ public class QueryUIDController {
      */
     @RequestMapping(value = "/getUser", method = RequestMethod.GET)
     @ResponseBody
-    public User getUser(User user, HttpServletRequest request) throws MalformedURLException {
-        return queryService.getUser(user, request);
+    public String getUser(User user, HttpServletRequest request) throws MalformedURLException {
+        return JSON.toJSONString(queryService.getUser(user, request));
     }
 
     /**
@@ -89,8 +86,8 @@ public class QueryUIDController {
      */
     @ResponseBody
     @RequestMapping(value = "/getUserForChar", method = RequestMethod.GET)
-    public HashMap<String, ArrayList<String>> getUserChar(String bv, String bChar, String timeline, HttpServletRequest request) {
-        return queryService.getUserChar(bv, bChar, timeline, request);
+    public String getUserChar(String bv, String bChar, String timeline, HttpServletRequest request) {
+        return JSON.toJSONString(queryService.getUserChar(bv, bChar, timeline, request));
     }
 
     /**
@@ -103,8 +100,8 @@ public class QueryUIDController {
      */
     @ResponseBody
     @RequestMapping(value = "/getCharForUser", method = RequestMethod.GET)
-    public HashMap<String, ArrayList<String>> getCharForUser(String bv, User user, HttpServletRequest request) {
-        return queryService.getCharForUser(bv, user, request);
+    public String getCharForUser(String bv, User user, HttpServletRequest request) {
+        return JSON.toJSONString(queryService.getCharForUser(bv, user, request));
     }
 }
 

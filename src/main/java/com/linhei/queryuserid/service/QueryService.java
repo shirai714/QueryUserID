@@ -14,6 +14,7 @@ import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author linhei
@@ -39,7 +40,7 @@ public interface QueryService extends IService<User> {
      * @return 结果
      * @throws IOException IO异常
      */
-    List<User> queryUserList(String tableName, String start, String length, HttpServletRequest request) throws IOException;
+    Map<String, Object> queryUserList(String tableName, String start, String length, HttpServletRequest request) throws IOException;
 
 
     /**
@@ -50,7 +51,7 @@ public interface QueryService extends IService<User> {
      * @return 结果
      * @throws MalformedURLException 异常
      */
-    User getUser(User user, HttpServletRequest request) throws MalformedURLException;
+    List<User> getUser(User user, HttpServletRequest request) throws MalformedURLException;
 
     /**
      * getTableCount方法
@@ -122,5 +123,13 @@ public interface QueryService extends IService<User> {
      * @return 查询结果
      */
     HashMap<String, ArrayList<String>> getCharForUser(String bv, User user, HttpServletRequest request);
+
+    /**
+     * 获取导航栏标题
+     *
+     * @param lever 用户级别
+     * @return redis内结果
+     */
+    Object getTitleList(String lever);
 
 }

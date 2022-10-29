@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
 import java.util.regex.Matcher;
@@ -25,7 +24,7 @@ import java.util.regex.Pattern;
  * @author linhei
  */
 @Controller
-@RequestMapping("/user")
+@RequestMapping("/log")
 @Slf4j
 public class LogAndSignController {
 
@@ -64,7 +63,7 @@ public class LogAndSignController {
     /**
      * 调用签到方法
      */
-    @PostConstruct // 项目启动后执行注解
+//    @PostConstruct // 项目启动后执行注解
     @Scheduled(cron = "0 0 8 * * ?") // 设置定时任务注解 每过一天执行一次
     private void signIn() {
         // 255sign

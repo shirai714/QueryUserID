@@ -85,15 +85,15 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
 
 
     @Override
-    public List<User> queryUserList(String tableName, String start, String length, HttpServletRequest request) {
+    public Map<String, Object> queryUserList(String tableName, String start, String length, HttpServletRequest request) {
         // 当未指定start时，将start默认指定为0
         if (null == start) {
             start = "0";
         }
 
-        // 当length未指定时，将length默认指定为5000
+        // 当length未指定时，将length默认指定为500
         if (null == length) {
-            length = "5000";
+            length = "500";
         } else if ("max".equals(length)) {
             // 当length指定为max时，将查询表下所有数据
             length = String.valueOf(getTableCount(tableName));
@@ -114,7 +114,18 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
         // 为list第一个值设置访问者ip
         userList.get(0).setIp(ip);
 
-        return userList;
+        Map<String, Object> res = new HashMap<>(2);
+        res.put("data", userList);
+
+        Object total = redisUtil.get(tableName);
+        if (total == null) {
+            String tableTotal = String.valueOf(getTableCount(tableName));
+            // 将查询结果保存到redis中 并设定有效时间为15天
+            redisUtil.set(tableName, tableTotal, 1296000L);
+        }
+        res.put("total", total);
+
+        return res;
     }
 
 
@@ -154,7 +165,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
      * @return user1
      */
     @Override
-    public User getUser(User user, HttpServletRequest request) {
+    public List<User> getUser(User user, HttpServletRequest request) {
 
 
         // 获取客户端IP地址
@@ -210,7 +221,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
         // 将查询者ip赋予user1
         user1.setIp(ip);
 
-        return user1;
+        return new ArrayList<>(List.of(user1));
     }
 
 
@@ -318,7 +329,7 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
                         continue;
                     }
                     // 将该用户的userid添加到该 key 的 value 中
-                    User user = getUser(new User(key), request);
+                    User user = (User) getUser(new User(key), request);
                     ArrayList<String> value = next.getValue();
                     if (user != null) {
                         value.add(String.valueOf(user.getId()));
@@ -394,4 +405,21 @@ public class QueryServiceImpl extends ServiceImpl<UserMapper, User> implements Q
 
         return cid;
     }
+
+
+    /**
+     * @param lever 用户级别
+     * @return redis查询结果
+     */
+    @Override
+    public Object getTitleList(String lever) {
+        String tableList = "tableList";
+        long length = redisUtil.lGetListSize(tableList);
+        List<Object> objects = redisUtil.lGet(tableList, 0, length);
+        System.out.println(objects.get(0));
+        return objects;
+    }
+
+
+
 }
