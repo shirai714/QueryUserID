@@ -137,6 +137,20 @@ public class Util {
     }
 
     /**
+     * 将时间戳转换为时间
+     *
+     * @param timestamp 时间戳
+     * @return 时间
+     */
+    public Date timestampToDate(long timestamp) {
+
+        timestamp *= 1000;
+        // 返回结果
+        return  new Date(timestamp);
+
+    }
+
+    /**
      * @param methodName 方法名
      * @param ip         访问者IP地址
      * @param content    查询的信息
@@ -513,24 +527,6 @@ public class Util {
             return matcher.group(1);
         }
         return null;
-    }
-
-    /**
-     * 将时间戳转换为时间
-     *
-     * @param timestamp 时间戳
-     * @return 时间
-     */
-    public Date timestampToDate(long timestamp) {
-
-        timestamp *= 1000;
-        // 格式化
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        Date date = new Date();
-        date.setTime(timestamp);
-        // 返回结果
-        return date;
-
     }
 
 
