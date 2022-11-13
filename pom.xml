@@ -71,11 +71,11 @@
                     <artifactId>mariadb-java-client</artifactId>
                     <version>3.0.0-alpha</version>
                 </dependency>-->
-        <!--    添加MySQL5.7驱动    -->
+        <!--    添加MySQL驱动    -->
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
-            <version>8.0.28</version>
+            <version>8.0.30</version>
         </dependency>
 
         <!--      Lombok    -->
@@ -111,13 +111,14 @@
         <dependency>
             <groupId>com.alibaba.fastjson2</groupId>
             <artifactId>fastjson2</artifactId>
-            <version>2.0.17.graal</version>
+            <version>2.0.18</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
         </dependency>
 
+        <!--    捕获项目汇总的日志    -->
         <!-- https://mvnrepository.com/artifact/org.slf4j/jcl-over-slf4j -->
         <dependency>
             <groupId>org.slf4j</groupId>
