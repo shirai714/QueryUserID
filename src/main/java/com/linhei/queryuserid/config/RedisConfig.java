@@ -1,5 +1,7 @@
 package com.linhei.queryuserid.config;
 
+import io.lettuce.core.ReadFrom;
+import org.springframework.boot.autoconfigure.data.redis.LettuceClientConfigurationBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -31,5 +33,20 @@ public class RedisConfig {
         template.setHashKeySerializer(redisSerializer);
 
         return template;
+    }
+
+    /**
+     * 配置redis主从分离
+     * ReadFrom是配置Redis的读取策略，是一个枚举，包含：
+     * MASTER：            从主节点读取
+     * MASTER_PREFERRED：  优先从master节点读取，master不可用才读取replica
+     * REPLICA：           从slave(replica)节点读取
+     * REPLICA_PREFERRED： 优先从slave(replica)节点读取，所有slave都不可用后才读取master
+     *
+     * @return 配置
+     */
+    @Bean
+    public LettuceClientConfigurationBuilderCustomizer configurationBuilderCustomizer() {
+        return configBuilder -> configBuilder.readFrom(ReadFrom.REPLICA_PREFERRED);
     }
 }

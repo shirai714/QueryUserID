@@ -58,20 +58,28 @@ spring:
 
   # redis
   redis:
-    host: domain
-    port: port
-    connect-timeout: 20000
-    password: pwd
-    jedis:
-      pool:
-        max-active: 8
-        # 连接池最大阻塞等待时间（使用负值表示没有限制）
-        max-wait: -1
-        # 连接池中的最大空闲连接
-        max-idle: 8
-        # 连接池中的最小空闲连接
-        min-idle: 0
+#    host: domain
+#    port: port
+#    connect-timeout: 20000
+#    password: pwd
+#    jedis:
+#      pool:
+#        max-active: 8
+#        # 连接池最大阻塞等待时间（使用负值表示没有限制）
+#        max-wait: -1
+#        # 连接池中的最大空闲连接
+#        max-idle: 8
+#        # 连接池中的最小空闲连接
+#        min-idle: 0
 
+    # 配置redis sentinel
+    sentinel:
+      master: masterName
+      nodes:
+        - nodeDomain:nodePort
+        - nodeDomain:nodePort
+      password:
+        sentinelPwd
 
 
 
